@@ -53,7 +53,7 @@ void main() {
 	vec2 envBRDF = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
 	vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
 
-	vec3 ambient = (kD * diffuse + prefilteredColor);
+	vec3 ambient = (kD * diffuse + specular);
 	fragColor = vec4(ambient, 1.0);
 
 	if (isGamma == 1) fragColor = vec4(gamma(fragColor.rgb), 1.0);
