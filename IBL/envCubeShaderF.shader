@@ -4,6 +4,8 @@ layout(location = 0) out vec4 fragColor;
 
 uniform samplerCube hdrSampler;
 
+uniform int isGamma;
+
 in vec3 localPos;
 
 const vec2 invAtan = vec2(0.1591, 0.3183);
@@ -14,5 +16,5 @@ void main() {
 	fragColor = vec4(texture(hdrSampler, localPos).rgb, 1.0);
 	//fragColor = vec4(0.5);
 
-	fragColor = vec4(gamma(fragColor.xyz), 1.0);
+	if (isGamma == 1) fragColor = vec4(gamma(fragColor.xyz), 1.0);
 }

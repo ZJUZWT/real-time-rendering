@@ -147,6 +147,7 @@
     <None Include="envShaderV.shader" />
     <None Include="preBrdfShaderF.shader" />
     <None Include="preBrdfShaderV.shader" />
+    <None Include="README.md" />
     <None Include="sphereShaderF.shader" />
     <None Include="sphereShaderV.shader" />
   </ItemGroup>

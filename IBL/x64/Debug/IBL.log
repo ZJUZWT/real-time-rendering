@@ -1,22 +1,22 @@
 ﻿  main.cpp
-Q:\OpenGL\LearningAll\IBL\include\Shader.h(56,35): warning C4101: “e”: 未引用的局部变量
-Q:\OpenGL\LearningAll\IBL\include\toolkit.h(168,90): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\include\toolkit.h(181,101): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\include\toolkit.h(186,101): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\include\toolkit.h(191,101): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\include\toolkit.h(196,101): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\include\toolkit.h(201,101): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\include\toolkit.h(206,101): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\include\toolkit.h(210,105): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\include\Interaction.h(18,17): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\include\Interaction.h(19,17): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\include\Interaction.h(37,17): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\include\Interaction.h(38,17): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\include\Interaction.h(73,28): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\IBL\main.cpp(298,47): warning C4018: “<”: 有符号/无符号不匹配
-Q:\OpenGL\LearningAll\IBL\IBL\main.cpp(651,33): warning C4305: “初始化”: 从“double”到“float”截断
-Q:\OpenGL\LearningAll\IBL\IBL\main.cpp(689,30): warning C4267: “=”: 从“size_t”转换到“unsigned int”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\IBL\main.cpp(716,51): warning C4244: “参数”: 从“float”转换到“GLsizei”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\IBL\main.cpp(718,51): warning C4244: “参数”: 从“float”转换到“GLsizei”，可能丢失数据
-Q:\OpenGL\LearningAll\IBL\IBL\main.cpp(720,51): warning C4244: “参数”: 从“float”转换到“GLsizei”，可能丢失数据
-  IBL.vcxproj -> Q:\OpenGL\LearningAll\IBL\x64\Debug\IBL.exe
+Q:\OpenGL\real-time-rendering\include\Shader.h(56,35): warning C4101: “e”: 未引用的局部变量
+Q:\OpenGL\real-time-rendering\include\toolkit.h(169,90): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+Q:\OpenGL\real-time-rendering\include\toolkit.h(182,101): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+Q:\OpenGL\real-time-rendering\include\toolkit.h(187,101): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+Q:\OpenGL\real-time-rendering\include\toolkit.h(192,101): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+Q:\OpenGL\real-time-rendering\include\toolkit.h(197,101): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+Q:\OpenGL\real-time-rendering\include\toolkit.h(202,101): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+Q:\OpenGL\real-time-rendering\include\toolkit.h(207,101): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+Q:\OpenGL\real-time-rendering\include\toolkit.h(211,105): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+Q:\OpenGL\real-time-rendering\include\Interaction.h(18,17): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+Q:\OpenGL\real-time-rendering\include\Interaction.h(19,17): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+Q:\OpenGL\real-time-rendering\include\Interaction.h(37,17): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+Q:\OpenGL\real-time-rendering\include\Interaction.h(38,17): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+Q:\OpenGL\real-time-rendering\include\Interaction.h(73,28): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
+Q:\OpenGL\real-time-rendering\IBL\main.cpp(302,47): warning C4018: “<”: 有符号/无符号不匹配
+Q:\OpenGL\real-time-rendering\IBL\main.cpp(578,33): warning C4305: “初始化”: 从“double”到“float”截断
+Q:\OpenGL\real-time-rendering\IBL\main.cpp(616,30): warning C4267: “=”: 从“size_t”转换到“unsigned int”，可能丢失数据
+Q:\OpenGL\real-time-rendering\IBL\main.cpp(643,51): warning C4244: “参数”: 从“float”转换到“GLsizei”，可能丢失数据
+Q:\OpenGL\real-time-rendering\IBL\main.cpp(645,51): warning C4244: “参数”: 从“float”转换到“GLsizei”，可能丢失数据
+Q:\OpenGL\real-time-rendering\IBL\main.cpp(647,51): warning C4244: “参数”: 从“float”转换到“GLsizei”，可能丢失数据
+  IBL.vcxproj -> Q:\OpenGL\real-time-rendering\x64\Debug\IBL.exe

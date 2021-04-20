@@ -21,7 +21,7 @@ float RadicalInverse_VdC(uint bits) {
 vec2 Hammersley(uint i, uint N) {
 	return vec2(float(i) / float(N), RadicalInverse_VdC(i));
 }
-vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness) {//这个部分不太懂
+vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness) {
 	float a = roughness * roughness;
 
 	float phi = 2.0 * PI * Xi.x;

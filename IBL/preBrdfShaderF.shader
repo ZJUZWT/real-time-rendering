@@ -63,13 +63,14 @@ vec2 preBrdf(float NdotV,float roughness) {
 
 	vec3 N = vec3(0, 0, 1);
 
-	const uint SAMPLE_COUNT = 1024u;
+	const uint SAMPLE_COUNT = 32768u;
 
 	for (uint i = 0u; i < SAMPLE_COUNT; i++) {
 		vec2 Xi = Hammersley(i, SAMPLE_COUNT); //返回的第一个是分割数，在下面也就是代表了phi的分割，第二个数是一个随机数，在下面表示了roughness的影响程度
 		vec3 H = ImportanceSampleGGX(Xi, N, roughness); //返回了一个在roughness影响下的微观表面向量
 		vec3 L = normalize(2.0 * dot(V, H) * H - V);
 
+		//半球空间
 		float NdotH = max(H.z, 0.0);
 		float NdotL = max(L.z, 0.0);
 		float VdotH = max(dot(V, H), 0.0);

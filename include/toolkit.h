@@ -160,7 +160,8 @@ GLuint loadHDR(std::string path, bool flip = true) {//HDRÎÄ¼þ»á±£´æ¸¡µãÊý£¬Õâ¸öº
 	return textureID;
 }
 
-void outputImage2D(std::string name, GLuint handle, size_t width, size_t height, int mipmap = 0) {
+void outputImage2D(std::string name, GLuint handle, size_t width, size_t height, int flip = false, int mipmap = 0) {
+	stbi_flip_vertically_on_write(flip);
 	float* map = new float[height * width * 3];
 	glBindTexture(GL_TEXTURE_2D, handle);
 	for (int i = 0, miplevel = 1; i <= mipmap; i++, miplevel *= 2) {

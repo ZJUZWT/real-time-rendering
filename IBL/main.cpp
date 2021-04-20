@@ -10,11 +10,11 @@
 #include "toolkit.h"
 #include "Interaction.h"
 
-//#define PRECOMPUTE
+//#define PRECOMPUTE //编译选项
 
 const int W = 1280;
 const int H = 768;
-glm::mat4 projection = glm::perspective(glm::radians(60.0f), (float)W / (float)H, 0.1f, 500.0f);
+glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)W / (float)H, 0.1f, 500.0f);
 
 GLuint shaderProgram = 0;
 GLuint shaderCubeProgram = 0;
@@ -29,17 +29,21 @@ GLuint calcIrradiance(GLuint envHDRHandle, int sizeW, int sizeH);
 GLuint calcprefilterEnv(GLuint envHDRHandle, int sizeW, int sizeH, int level);
 
 void initShader();
-void renderBallSet(int size, GLuint irradianceMap, GLuint prefilterMap, GLuint brdfLUT);
-void renderCubeHDREnv(GLuint envCubeHDRHandle, glm::mat4 V, glm::mat4 P, GLuint shader);
+void renderBallSet(int size, GLuint irradianceMap, GLuint prefilterMap, GLuint brdfLUT, GLuint gamma = true);
+void renderCubeHDREnv(GLuint envCubeHDRHandle, glm::mat4 V, glm::mat4 P, GLuint shader, GLuint gamma = true);
 void renderHDREnvOnCube(GLuint envHDRHandle, glm::mat4 V, glm::mat4 P, GLuint shader);
 
+void renderWorkOutPic(GLuint envHDRCubeHandle, GLuint envHDRIrradianceHandle, GLuint envHDRprefilterEnvHandle, GLuint brdfHandle);
+
 const int cubeSize = 1024;
-const int irradianceSize = 128 ;
+const int irradianceSize = 128;
 const int prefilterSize = 1024; const int prefilterLevel = 5;
 const int brdfSize = 1024;
 
 int main(int argc, char** argv) {
 	glfwInit();
+
+	//开辟窗口
 	GLFWwindow* window = glfwCreateWindow(W, H, "IBL", nullptr, nullptr);
 	glfwMakeContextCurrent(window);
 
@@ -69,14 +73,14 @@ int main(int argc, char** argv) {
 	outputCubeImage("prefilter/envPrefilter", envHDRprefilterEnvHandle, prefilterSize, prefilterSize, prefilterLevel); std::cout << "OUT prefilter!\n";
 	outputImage2D("brdf/brdf", brdfHandle, brdfSize, brdfSize); std::cout << "OUT BRDF!\n";
 #else
-	//预计算
+	//载入预计算贴图
 	GLuint envHDRCubeHandle = loadCubemap("cube/envCube", cubeSize, cubeSize);
 	GLuint envHDRIrradianceHandle = loadCubemap("irradiance/envIrradiance", irradianceSize, irradianceSize);
 	GLuint envHDRprefilterEnvHandle = loadCubemap("prefilter/envPrefilter", prefilterSize, prefilterSize, prefilterLevel);
 	//outputCubeImage("test/envIrradiance", envHDRIrradianceHandle, irradianceSize, irradianceSize); std::cout << "OUT Irradiance!\n";
 	GLuint brdfHandle = loadHDR("brdf/brdf_0.hdr", false);
 
-	//return 0;
+	renderWorkOutPic(envHDRCubeHandle, envHDRIrradianceHandle, envHDRprefilterEnvHandle, brdfHandle);
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
@@ -469,7 +473,7 @@ void renderHDREnvOnCube(GLuint envHDRHandle, glm::mat4 V, glm::mat4 P, GLuint sh
 
 	glUseProgram(0);
 }
-void renderCubeHDREnv(GLuint envCubeHDRHandle, glm::mat4 V, glm::mat4 P, GLuint shader) {
+void renderCubeHDREnv(GLuint envCubeHDRHandle, glm::mat4 V, glm::mat4 P, GLuint shader, GLuint gamma) {
 	if (!cubeVAO) {
 		static const GLfloat cubeVertices[36][8] = {
 			// back face
@@ -540,6 +544,8 @@ void renderCubeHDREnv(GLuint envCubeHDRHandle, glm::mat4 V, glm::mat4 P, GLuint 
 	glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, glm::value_ptr(V));
 	uniformLocation = glGetUniformLocation(shader, "P");
 	glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, glm::value_ptr(P));
+	uniformLocation = glGetUniformLocation(shader, "isGamma");
+	glUniform1i(uniformLocation, gamma);
 	uniformLocation = glGetUniformLocation(shader, "hdrSampler");
 	glUniform1i(uniformLocation, 0);
 	glActiveTexture(GL_TEXTURE0);
@@ -643,8 +649,7 @@ void renderSphere()
 	glBindVertexArray(sphereVAO);
 	glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 }
-
-void renderBallSet(int size, GLuint irradianceMap, GLuint prefilterMap, GLuint brdfLUT) {
+void renderBallSet(int size, GLuint irradianceMap, GLuint prefilterMap, GLuint brdfLUT, GLuint gamma) {
 	glUseProgram(shaderSphere);
 	glUniformMatrix4fv(
 		glGetUniformLocation(shaderSphere, "V"),
@@ -662,6 +667,9 @@ void renderBallSet(int size, GLuint irradianceMap, GLuint prefilterMap, GLuint b
 		glGetUniformLocation(shaderSphere, "albedo"),
 		1,
 		glm::value_ptr(glm::vec3(0.5, 0.0, 0.0)));
+	glUniform1i(
+		glGetUniformLocation(shaderSphere, "isGamma"),
+		gamma);
 	glUniform1i(
 		glGetUniformLocation(shaderSphere, "irradianceMap"),
 		0);
@@ -692,4 +700,42 @@ void renderBallSet(int size, GLuint irradianceMap, GLuint prefilterMap, GLuint b
 
 			renderSphere();
 		}
+}
+
+void renderWorkOutPic(GLuint envHDRCubeHandle, GLuint envHDRIrradianceHandle, GLuint envHDRprefilterEnvHandle, GLuint brdfHandle) {
+	const int picW = W * 4, picH = H * 4;
+
+	GLuint captureFBO, captureRBO;
+	//创建缓冲
+	glGenFramebuffers(1, &captureFBO);
+	glGenRenderbuffers(1, &captureRBO);
+	//绑定缓冲
+	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+	glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+	//分配内存与绑定帧缓冲
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, picW, picH);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
+	//创建纹理缓存
+	unsigned int captureTex;
+	glGenTextures(1, &captureTex);
+	glBindTexture(GL_TEXTURE_2D, captureTex);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, picW, picH, 0, GL_RGB, GL_FLOAT, nullptr);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//绑定FBO
+	glViewport(0, 0, picW, picH);
+	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, captureTex, 0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	renderBallSet(5, envHDRIrradianceHandle, envHDRprefilterEnvHandle, brdfHandle, false);
+	renderCubeHDREnv(envHDRCubeHandle, camera.GetViewMatrix(), projection, shaderCubeProgram, false);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, W, H);
+	outputImage2D("result/result", captureTex, picW, picH, true); std::cout << "OUT!\n";
 }
