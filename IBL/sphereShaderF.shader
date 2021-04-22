@@ -16,6 +16,9 @@ uniform vec3 camPos;
 in vec3 worldPos;
 in vec3 normal;
 
+vec3 degamma(vec3 color) {
+	return pow(color, vec3(2.2));
+}
 vec3 gamma(vec3 color) {
 	return pow(color, vec3(1 / 2.2));
 }
@@ -54,7 +57,7 @@ void main() {
 	vec3 specular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
 
 	vec3 ambient = (kD * diffuse + specular);
-	fragColor = vec4(ambient, 1.0);
+	fragColor = vec4(specular, 1.0);
 
 	if (isGamma == 1) fragColor = vec4(gamma(fragColor.rgb), 1.0);
 }

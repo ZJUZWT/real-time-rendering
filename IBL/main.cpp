@@ -22,6 +22,7 @@ GLuint shaderIrradianceProgram = 0;
 GLuint shaderprefilterProgram = 0;
 GLuint shaderPreBrdf = 0;
 GLuint shaderSphere = 0;
+GLuint shaderSphereOffline = 0;
 
 GLuint cubeHDR(GLuint envHDRHandle, int sizeW, int sizeH);
 GLuint calcBrdf(int sizeW, int sizeH);
@@ -29,11 +30,11 @@ GLuint calcIrradiance(GLuint envHDRHandle, int sizeW, int sizeH);
 GLuint calcprefilterEnv(GLuint envHDRHandle, int sizeW, int sizeH, int level);
 
 void initShader();
-void renderBallSet(int size, GLuint irradianceMap, GLuint prefilterMap, GLuint brdfLUT, GLuint gamma = true);
+void renderBallSet(int size, GLuint cubeMap, GLuint irradianceMap, GLuint prefilterMap, GLuint brdfLUT, GLuint shader, GLuint gamma = true);
 void renderCubeHDREnv(GLuint envCubeHDRHandle, glm::mat4 V, glm::mat4 P, GLuint shader, GLuint gamma = true);
 void renderHDREnvOnCube(GLuint envHDRHandle, glm::mat4 V, glm::mat4 P, GLuint shader);
 
-void renderWorkOutPic(GLuint envHDRCubeHandle, GLuint envHDRIrradianceHandle, GLuint envHDRprefilterEnvHandle, GLuint brdfHandle);
+void renderWorkOutPic(GLuint envHDRCubeHandle, GLuint envHDRIrradianceHandle, GLuint envHDRprefilterEnvHandle, GLuint brdfHandle, GLuint shader, std::string path);
 
 const int cubeSize = 1024;
 const int irradianceSize = 128;
@@ -62,32 +63,34 @@ int main(int argc, char** argv) {
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 #ifdef PRECOMPUTE
 	//预计算
-	GLuint envHDRHandle = loadHDR("env.hdr"); std::cout << "Load!\n";
-	GLuint envHDRCubeHandle = cubeHDR(envHDRHandle, cubeSize, cubeSize); std::cout << "Cube!\n";
-	GLuint envHDRIrradianceHandle = calcIrradiance(envHDRCubeHandle, irradianceSize, irradianceSize); std::cout << "Irradiance!\n";
-	GLuint envHDRprefilterEnvHandle = calcprefilterEnv(envHDRCubeHandle, prefilterSize, prefilterSize, prefilterLevel); std::cout << "prefilter!\n";
+	//GLuint envHDRHandle = loadHDR("env.hdr"); std::cout << "Load!\n";
+	//GLuint envHDRCubeHandle = cubeHDR(envHDRHandle, cubeSize, cubeSize); std::cout << "Cube!\n";
+	//GLuint envHDRIrradianceHandle = calcIrradiance(envHDRCubeHandle, irradianceSize, irradianceSize); std::cout << "Irradiance!\n";
+	//GLuint envHDRprefilterEnvHandle = calcprefilterEnv(envHDRCubeHandle, prefilterSize, prefilterSize, prefilterLevel); std::cout << "prefilter!\n";
 	GLuint brdfHandle = calcBrdf(brdfSize, brdfSize); std::cout << "BRDF!\n";
 	//输出
-	outputCubeImage("cube/envCube", envHDRCubeHandle, cubeSize, cubeSize); std::cout << "OUT Cube!\n";
-	outputCubeImage("irradiance/envIrradiance", envHDRIrradianceHandle, irradianceSize, irradianceSize); std::cout << "OUT Irradiance!\n";
-	outputCubeImage("prefilter/envPrefilter", envHDRprefilterEnvHandle, prefilterSize, prefilterSize, prefilterLevel); std::cout << "OUT prefilter!\n";
+	//outputCubeImage("cube/envCube", envHDRCubeHandle, cubeSize, cubeSize); std::cout << "OUT Cube!\n";
+	//outputCubeImage("irradiance/envIrradiance", envHDRIrradianceHandle, irradianceSize, irradianceSize); std::cout << "OUT Irradiance!\n";
+	//outputCubeImage("prefilter/envPrefilter", envHDRprefilterEnvHandle, prefilterSize, prefilterSize, prefilterLevel); std::cout << "OUT prefilter!\n";
 	outputImage2D("brdf/brdf", brdfHandle, brdfSize, brdfSize); std::cout << "OUT BRDF!\n";
 #else
 	//载入预计算贴图
 	GLuint envHDRCubeHandle = loadCubemap("cube/envCube", cubeSize, cubeSize);
 	GLuint envHDRIrradianceHandle = loadCubemap("irradiance/envIrradiance", irradianceSize, irradianceSize);
 	GLuint envHDRprefilterEnvHandle = loadCubemap("prefilter/envPrefilter", prefilterSize, prefilterSize, prefilterLevel);
-	//outputCubeImage("test/envIrradiance", envHDRIrradianceHandle, irradianceSize, irradianceSize); std::cout << "OUT Irradiance!\n";
 	GLuint brdfHandle = loadHDR("brdf/brdf_0.hdr", false);
 
-	renderWorkOutPic(envHDRCubeHandle, envHDRIrradianceHandle, envHDRprefilterEnvHandle, brdfHandle);
+	renderWorkOutPic(envHDRCubeHandle, envHDRIrradianceHandle, envHDRprefilterEnvHandle, brdfHandle, shaderSphereOffline, "result/ref"); std::cout << "OUT offline pic\n";
+	renderWorkOutPic(envHDRCubeHandle, envHDRIrradianceHandle, envHDRprefilterEnvHandle, brdfHandle, shaderSphere, "result/result"); std::cout << "OUT real time pic\n";
+
+	return 0;
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		renderBallSet(5, envHDRIrradianceHandle, envHDRprefilterEnvHandle, brdfHandle);
+		renderBallSet(5, envHDRCubeHandle, envHDRIrradianceHandle, envHDRprefilterEnvHandle, brdfHandle, shaderSphere);
 		renderCubeHDREnv(envHDRCubeHandle, camera.GetViewMatrix(), projection, shaderCubeProgram);
 
 		glfwSwapBuffers(window);
@@ -391,6 +394,18 @@ void initShader() {
 		glAttachShader(shaderSphere, shader);
 	}
 	glLinkProgram(shaderSphere);
+
+	//编译、连接着色器
+	ShaderInfo sphereOfflineShaders[] = {
+		{GL_VERTEX_SHADER,"sphereShaderV.shader"} ,
+		{GL_FRAGMENT_SHADER,"sphereOfflineShaderF.shader"} ,
+		{GL_NONE,""} };
+	shaderSphereOffline = glCreateProgram();
+	for (int i = 0; sphereOfflineShaders[i].mode != GL_NONE; i++) {
+		GLuint shader = LoadShader(sphereOfflineShaders[i]);
+		glAttachShader(shaderSphereOffline, shader);
+	}
+	glLinkProgram(shaderSphereOffline);
 }
 void renderHDREnvOnCube(GLuint envHDRHandle, glm::mat4 V, glm::mat4 P, GLuint shader) {
 	if (!cubeVAO) {
@@ -649,52 +664,57 @@ void renderSphere()
 	glBindVertexArray(sphereVAO);
 	glDrawElements(GL_TRIANGLE_STRIP, indexCount, GL_UNSIGNED_INT, 0);
 }
-void renderBallSet(int size, GLuint irradianceMap, GLuint prefilterMap, GLuint brdfLUT, GLuint gamma) {
-	glUseProgram(shaderSphere);
+void renderBallSet(int size, GLuint cubeMap, GLuint irradianceMap, GLuint prefilterMap, GLuint brdfLUT, GLuint shader, GLuint gamma) {
+	glUseProgram(shader);
 	glUniformMatrix4fv(
-		glGetUniformLocation(shaderSphere, "V"),
+		glGetUniformLocation(shader, "V"),
 		1, GL_FALSE,
 		glm::value_ptr(camera.GetViewMatrix()));
 	glUniformMatrix4fv(
-		glGetUniformLocation(shaderSphere, "P"),
+		glGetUniformLocation(shader, "P"),
 		1, GL_FALSE,
 		glm::value_ptr(projection));
 	glUniform3fv(
-		glGetUniformLocation(shaderSphere, "camPos"),
+		glGetUniformLocation(shader, "camPos"),
 		1,
 		glm::value_ptr(camera.GetViewPosition()));
 	glUniform3fv(
-		glGetUniformLocation(shaderSphere, "albedo"),
+		glGetUniformLocation(shader, "albedo"),
 		1,
-		glm::value_ptr(glm::vec3(0.5, 0.0, 0.0)));
+		glm::value_ptr(glm::vec3(1.0, 1.0, 1.0)));
 	glUniform1i(
-		glGetUniformLocation(shaderSphere, "isGamma"),
+		glGetUniformLocation(shader, "isGamma"),
 		gamma);
 	glUniform1i(
-		glGetUniformLocation(shaderSphere, "irradianceMap"),
+		glGetUniformLocation(shader, "irradianceMap"),
 		0);
 	glUniform1i(
-		glGetUniformLocation(shaderSphere, "prefilterMap"),
+		glGetUniformLocation(shader, "prefilterMap"),
 		1);
 	glUniform1i(
-		glGetUniformLocation(shaderSphere, "brdfLUT"),
+		glGetUniformLocation(shader, "brdfLUT"),
 		2);
+	glUniform1i(
+		glGetUniformLocation(shader, "hdrSampler"),
+		3);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
 	glActiveTexture(GL_TEXTURE2);
 	glBindTexture(GL_TEXTURE_2D, brdfLUT);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMap);
 	for (int i = -size; i <= size; i++)
 		for (int j = -size; j <= size; j++) {
 			glUniform1f(
-				glGetUniformLocation(shaderSphere, "roughness"),
+				glGetUniformLocation(shader, "roughness"),
 				1.0f * (i + size) / (size * 2 + 1));
 			glUniform1f(
-				glGetUniformLocation(shaderSphere, "metalness"),
+				glGetUniformLocation(shader, "metalness"),
 				1.0f * (j + size) / (size * 2 + 1));
 			glUniformMatrix4fv(
-				glGetUniformLocation(shaderSphere, "M"),
+				glGetUniformLocation(shader, "M"),
 				1, GL_FALSE,
 				glm::value_ptr(glm::translate(glm::mat4(1.0), glm::vec3(i * 3, j * 3, 0))));
 
@@ -702,7 +722,7 @@ void renderBallSet(int size, GLuint irradianceMap, GLuint prefilterMap, GLuint b
 		}
 }
 
-void renderWorkOutPic(GLuint envHDRCubeHandle, GLuint envHDRIrradianceHandle, GLuint envHDRprefilterEnvHandle, GLuint brdfHandle) {
+void renderWorkOutPic(GLuint envHDRCubeHandle, GLuint envHDRIrradianceHandle, GLuint envHDRprefilterEnvHandle, GLuint brdfHandle, GLuint shader, std::string path) {
 	const int picW = W * 4, picH = H * 4;
 
 	GLuint captureFBO, captureRBO;
@@ -732,10 +752,10 @@ void renderWorkOutPic(GLuint envHDRCubeHandle, GLuint envHDRIrradianceHandle, GL
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, captureTex, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	renderBallSet(5, envHDRIrradianceHandle, envHDRprefilterEnvHandle, brdfHandle, false);
+	renderBallSet(5, envHDRCubeHandle, envHDRIrradianceHandle, envHDRprefilterEnvHandle, brdfHandle, shader, false);
 	renderCubeHDREnv(envHDRCubeHandle, camera.GetViewMatrix(), projection, shaderCubeProgram, false);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glViewport(0, 0, W, H);
-	outputImage2D("result/result", captureTex, picW, picH, true); std::cout << "OUT!\n";
+	outputImage2D(path.c_str(), captureTex, picW, picH, true);
 }

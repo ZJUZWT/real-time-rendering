@@ -13,10 +13,10 @@ Q:\OpenGL\real-time-rendering\include\Interaction.h(19,17): warning C4244: “�
 Q:\OpenGL\real-time-rendering\include\Interaction.h(37,17): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
 Q:\OpenGL\real-time-rendering\include\Interaction.h(38,17): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
 Q:\OpenGL\real-time-rendering\include\Interaction.h(73,28): warning C4244: “参数”: 从“double”转换到“float”，可能丢失数据
-Q:\OpenGL\real-time-rendering\IBL\main.cpp(302,47): warning C4018: “<”: 有符号/无符号不匹配
-Q:\OpenGL\real-time-rendering\IBL\main.cpp(578,33): warning C4305: “初始化”: 从“double”到“float”截断
-Q:\OpenGL\real-time-rendering\IBL\main.cpp(616,30): warning C4267: “=”: 从“size_t”转换到“unsigned int”，可能丢失数据
-Q:\OpenGL\real-time-rendering\IBL\main.cpp(643,51): warning C4244: “参数”: 从“float”转换到“GLsizei”，可能丢失数据
-Q:\OpenGL\real-time-rendering\IBL\main.cpp(645,51): warning C4244: “参数”: 从“float”转换到“GLsizei”，可能丢失数据
-Q:\OpenGL\real-time-rendering\IBL\main.cpp(647,51): warning C4244: “参数”: 从“float”转换到“GLsizei”，可能丢失数据
+Q:\OpenGL\real-time-rendering\IBL\main.cpp(306,47): warning C4018: “<”: 有符号/无符号不匹配
+Q:\OpenGL\real-time-rendering\IBL\main.cpp(594,33): warning C4305: “初始化”: 从“double”到“float”截断
+Q:\OpenGL\real-time-rendering\IBL\main.cpp(632,30): warning C4267: “=”: 从“size_t”转换到“unsigned int”，可能丢失数据
+Q:\OpenGL\real-time-rendering\IBL\main.cpp(659,51): warning C4244: “参数”: 从“float”转换到“GLsizei”，可能丢失数据
+Q:\OpenGL\real-time-rendering\IBL\main.cpp(661,51): warning C4244: “参数”: 从“float”转换到“GLsizei”，可能丢失数据
+Q:\OpenGL\real-time-rendering\IBL\main.cpp(663,51): warning C4244: “参数”: 从“float”转换到“GLsizei”，可能丢失数据
   IBL.vcxproj -> Q:\OpenGL\real-time-rendering\x64\Debug\IBL.exe

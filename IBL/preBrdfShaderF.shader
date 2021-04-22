@@ -87,8 +87,10 @@ vec2 preBrdf(float NdotV,float roughness) {
 		}
 	}
 	return vec2(scale / SAMPLE_COUNT, bias / SAMPLE_COUNT);
+	//return pow(vec2(scale / SAMPLE_COUNT, bias / SAMPLE_COUNT), vec2(2.2));
 }
 
 void main() {
 	fragColor = vec4(preBrdf((worldPos.x + 1) / 2, 1 - (worldPos.y + 1) / 2), 0.0, 1.0);
+	//fragColor = vec4((worldPos.x + 1) / 2, 1 - (worldPos.y + 1) / 2, 0.0, 1.0);
 }
