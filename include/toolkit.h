@@ -7,9 +7,9 @@
 #include<iostream>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "OpenGL/stb_image.h"
+#include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "OpenGL/stb_image_write.h"
+#include "stb_image_write.h"
 //---------------------------------------------------------------------------------SHADER
 struct ShaderInfo {
 	int mode;
@@ -141,8 +141,10 @@ GLuint loadHDR(std::string path, bool flip = true) {//HDRÎÄ¼þ»á±£´æ¸¡µãÊý£¬Õâ¸öº
 
 	int width, height, nrChannels;
 	//¶ÁÈ¡Í¼Æ¬
-	stbi_set_flip_vertically_on_load(flip);
+	//stbi_set_flip_vertically_on_load(flip);
 	float* data = stbi_loadf(path.c_str(), &width, &height, &nrChannels, 0);
+
+	stbi_write_hdr("check.hdr", width, height, nrChannels, data);
 	if (data) {
 		//Ìî³äÄÚÈÝ¸øµ±Ç°°ó¶¨µÄ¾ä±ú
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, width, height, 0, GL_RGB, GL_FLOAT, data);
@@ -161,7 +163,7 @@ GLuint loadHDR(std::string path, bool flip = true) {//HDRÎÄ¼þ»á±£´æ¸¡µãÊý£¬Õâ¸öº
 }
 
 void outputImage2D(std::string name, GLuint handle, size_t width, size_t height, int flip = false, int mipmap = 0) {
-	stbi_flip_vertically_on_write(flip);
+	//stbi_flip_vertically_on_write(flip);
 	float* map = new float[height * width * 3];
 	glBindTexture(GL_TEXTURE_2D, handle);
 	for (int i = 0, miplevel = 1; i <= mipmap; i++, miplevel *= 2) {

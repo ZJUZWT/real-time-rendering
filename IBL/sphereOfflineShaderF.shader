@@ -104,15 +104,15 @@ void main() {
 	vec3 F0 = vec3(0.04);
 	F0 = mix(F0, albedo, metalness);
 
-	const int SAMPLE_COUNT = 1024;
+	const int SAMPLE_COUNT = 4096;
 
 	//漫反射：主要贡献来源于光强，所以最好的策略是遍历卷积，而不是采样
 	vec3 colorD = vec3(0);
 	float sampleDelta = 0.125;
 	float nrSamples = 0.0;
 	vec3 C = albedo;
-	for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta) {
-		for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta) {
+	for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta) {
+		for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta) {
 			// spherical to cartesian (in tangent space)
 			vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
 			// tangent space to world
@@ -148,33 +148,33 @@ void main() {
 	//}
 	//镜面反射
 	vec3 colorS = vec3(0);
-	if (roughness > 1.5) {
-		sampleDelta = 0.125;
-		nrSamples = 0.0;
-		for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta) {
-			for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta) {
-				// spherical to cartesian (in tangent space)
-				vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
-				// tangent space to world
-				vec3 L = tangentSample.x * tangent + tangentSample.y * bitangent + tangentSample.z * N;
-				vec3 H = normalize(L + V);
+	//if (roughness > 1.5) {
+	//	sampleDelta = 0.125;
+	//	nrSamples = 0.0;
+	//	for (float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta) {
+	//		for (float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta) {
+	//			// spherical to cartesian (in tangent space)
+	//			vec3 tangentSample = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+	//			// tangent space to world
+	//			vec3 L = tangentSample.x * tangent + tangentSample.y * bitangent + tangentSample.z * N;
+	//			vec3 H = normalize(L + V);
 
-				float HdotL = max(dot(L, H), 0.0);
-				float NdotH = max(dot(N, H), 0.0);
-				float NdotL = max(dot(N, L), 0.0);
-				float NdotV = max(dot(N, V), 0.0);
+	//			float HdotL = max(dot(L, H), 0.0);
+	//			float NdotH = max(dot(N, H), 0.0);
+	//			float NdotL = max(dot(N, L), 0.0);
+	//			float NdotV = max(dot(N, V), 0.0);
 
-				float D = GGX(NdotH, roughness);
-				float G = max(Gsmith(NdotL, NdotV, roughness * roughness / 2), 0.0);
-				vec3 F = FresnelSphericalGaussian(HdotL, F0);
-				colorS += F * G * D / 4 / NdotV * texture(hdrSampler, L).rgb * sin(theta);
-				//colorS += F * G * D / 4 / NdotV * texture(hdrSampler, L).rgb * sin(theta) * sampleDelta * sampleDelta;
-				nrSamples++;
-			}
-		}
-		colorS /= nrSamples / PI / PI;
-	}
-	else {
+	//			float D = GGX(NdotH, roughness);
+	//			float G = max(Gsmith(NdotL, NdotV, roughness * roughness / 2), 0.0);
+	//			vec3 F = FresnelSphericalGaussian(HdotL, F0);
+	//			colorS += F * G * D / 4 / NdotV * texture(hdrSampler, L).rgb * sin(theta);
+	//			//colorS += F * G * D / 4 / NdotV * texture(hdrSampler, L).rgb * sin(theta) * sampleDelta * sampleDelta;
+	//			nrSamples++;
+	//		}
+	//	}
+	//	colorS /= nrSamples / PI / PI;
+	//}
+	//else {
 		for (int i = 0; i < SAMPLE_COUNT; i++) {
 			vec2 Xi = Hammersley(i, SAMPLE_COUNT); //返回的第一个是分割数，在下面也就是代表了phi的分割，第二个数是一个随机数，在下面表示了roughness的影响程度
 			vec3 H = ImportanceSampleGGX(Xi, N, roughness); //返回了一个在roughness影响下的微观表面向量
@@ -200,9 +200,9 @@ void main() {
 			}
 		}
 		colorS /= SAMPLE_COUNT;
-	}
+	//}
 
-	fragColor = vec4(colorS /*+ colorD*/, 1.0);
+	fragColor = vec4(colorS + colorD, 1.0);
 	//fragColor = vec4(degamma(color / SAMPLE_COUNT), 1.0);
 	//fragColor = vec4(texture(hdrSampler, N).rgb, 1.0);
 	if (isGamma == 1) fragColor = vec4(gamma(fragColor.rgb), 1.0);

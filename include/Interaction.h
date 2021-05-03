@@ -1,6 +1,6 @@
 #pragma once
 
-Camera camera(glm::vec3(0.1f, 0.0f, 50.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+Camera camera(glm::vec3(0.1f, 10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
 double lastX, lastY;
 int left_button_pressed = 0;
@@ -50,23 +50,23 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
 		left_button_pressed = 1;
 		left_button_pressed_just = 1;
-		printf("GET LEFT BUTTON PRESS\n");
+		//printf("GET LEFT BUTTON PRESS\n");
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
 		left_button_pressed = 0;
-		printf("GET LEFT BUTTON RELEASE\n");
+		//printf("GET LEFT BUTTON RELEASE\n");
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
 		right_button_pressed = 1;
 		right_button_pressed_just = 1;
-		printf("GET RIGHT BUTTON PRESS\n");
+		//printf("GET RIGHT BUTTON PRESS\n");
 	}
 
 	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
 		right_button_pressed = 0;
-		printf("GET RIGHT BUTTON RELEASE\n");
+		//printf("GET RIGHT BUTTON RELEASE\n");
 	}
 }
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {

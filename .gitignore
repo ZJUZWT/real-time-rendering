@@ -2,4 +2,9 @@
 Debug/
 x64/
 IBL/Debug
+IBL/Release
 IBL/x64
+
+SH/Debug
+SH/Release
+SH/x64

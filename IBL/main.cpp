@@ -1,9 +1,9 @@
-#include <OpenGL/glad/glad.h>
-#include <OpenGL/glfw/include/GLFW/glfw3.h>
+#include <glad/glad.h>
+#include <glfw/include/GLFW/glfw3.h>
 
-#include <OpenGL/glm/glm.hpp>
-#include <OpenGL/glm/gtc/matrix_transform.hpp>
-#include <OpenGL/glm/gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "Shader.h"
 #include "Camera.h"
@@ -63,15 +63,15 @@ int main(int argc, char** argv) {
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 #ifdef PRECOMPUTE
 	//‘§º∆À„
-	//GLuint envHDRHandle = loadHDR("env.hdr"); std::cout << "Load!\n";
-	//GLuint envHDRCubeHandle = cubeHDR(envHDRHandle, cubeSize, cubeSize); std::cout << "Cube!\n";
-	//GLuint envHDRIrradianceHandle = calcIrradiance(envHDRCubeHandle, irradianceSize, irradianceSize); std::cout << "Irradiance!\n";
-	//GLuint envHDRprefilterEnvHandle = calcprefilterEnv(envHDRCubeHandle, prefilterSize, prefilterSize, prefilterLevel); std::cout << "prefilter!\n";
+	GLuint envHDRHandle = loadHDR("env.hdr"); std::cout << "Load!\n";
+	GLuint envHDRCubeHandle = cubeHDR(envHDRHandle, cubeSize, cubeSize); std::cout << "Cube!\n";
+	GLuint envHDRIrradianceHandle = calcIrradiance(envHDRCubeHandle, irradianceSize, irradianceSize); std::cout << "Irradiance!\n";
+	GLuint envHDRprefilterEnvHandle = calcprefilterEnv(envHDRCubeHandle, prefilterSize, prefilterSize, prefilterLevel); std::cout << "prefilter!\n";
 	GLuint brdfHandle = calcBrdf(brdfSize, brdfSize); std::cout << "BRDF!\n";
 	// ‰≥ˆ
-	//outputCubeImage("cube/envCube", envHDRCubeHandle, cubeSize, cubeSize); std::cout << "OUT Cube!\n";
-	//outputCubeImage("irradiance/envIrradiance", envHDRIrradianceHandle, irradianceSize, irradianceSize); std::cout << "OUT Irradiance!\n";
-	//outputCubeImage("prefilter/envPrefilter", envHDRprefilterEnvHandle, prefilterSize, prefilterSize, prefilterLevel); std::cout << "OUT prefilter!\n";
+	outputCubeImage("cube/envCube", envHDRCubeHandle, cubeSize, cubeSize); std::cout << "OUT Cube!\n";
+	outputCubeImage("irradiance/envIrradiance", envHDRIrradianceHandle, irradianceSize, irradianceSize); std::cout << "OUT Irradiance!\n";
+	outputCubeImage("prefilter/envPrefilter", envHDRprefilterEnvHandle, prefilterSize, prefilterSize, prefilterLevel); std::cout << "OUT prefilter!\n";
 	outputImage2D("brdf/brdf", brdfHandle, brdfSize, brdfSize); std::cout << "OUT BRDF!\n";
 #else
 	//‘ÿ»Î‘§º∆À„Ã˘Õº
@@ -80,10 +80,10 @@ int main(int argc, char** argv) {
 	GLuint envHDRprefilterEnvHandle = loadCubemap("prefilter/envPrefilter", prefilterSize, prefilterSize, prefilterLevel);
 	GLuint brdfHandle = loadHDR("brdf/brdf_0.hdr", false);
 
-	renderWorkOutPic(envHDRCubeHandle, envHDRIrradianceHandle, envHDRprefilterEnvHandle, brdfHandle, shaderSphereOffline, "result/ref"); std::cout << "OUT offline pic\n";
-	renderWorkOutPic(envHDRCubeHandle, envHDRIrradianceHandle, envHDRprefilterEnvHandle, brdfHandle, shaderSphere, "result/result"); std::cout << "OUT real time pic\n";
+	//renderWorkOutPic(envHDRCubeHandle, envHDRIrradianceHandle, envHDRprefilterEnvHandle, brdfHandle, shaderSphereOffline, "result/ref"); std::cout << "OUT offline pic\n";
+	//renderWorkOutPic(envHDRCubeHandle, envHDRIrradianceHandle, envHDRprefilterEnvHandle, brdfHandle, shaderSphere, "result/result"); std::cout << "OUT real time pic\n";
 
-	return 0;
+	//return 0;
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();

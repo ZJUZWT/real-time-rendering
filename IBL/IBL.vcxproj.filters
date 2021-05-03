@@ -21,7 +21,7 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\include\OpenGL\glad.c">
+    <ClCompile Include="..\include\glad.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
