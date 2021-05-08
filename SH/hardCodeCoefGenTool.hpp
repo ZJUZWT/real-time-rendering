@@ -36,8 +36,8 @@ void hardCodeCoefGen() {
 
 
 	//output 
-	for (int l = 2; l < level; l++) {
-		std::cout << "void SHFSampler_" << l << "(SHCoef& pSH, const Float fX, const Float fY, const Float fZ) {" << std::endl;
+	for (int l = 1; l < level; l++) {
+		std::cout << "void SHFSampler_" << l - 1 << "(SHCoef& pSH, const Float fX, const Float fY, const Float fZ) {" << std::endl;
 		std::cout << "\t" << "Float fC0, fC1, fS0, fS1, fTmpA, fTmpB, fTmpC; Float fZ2 = fZ * fZ; " << std::endl;
 
 		genLdist(l, 0);
@@ -49,12 +49,12 @@ void hardCodeCoefGen() {
 
 		std::cout << "}" << std::endl;
 	}
-	printf("SHCoef SHFSample(Float x, Float y, Float z) {\n");
+	printf("SHCoef SHFSample(const int SH_ORDER, Float x, Float y, Float z) {\n");
 	printf("\tSHCoef res;\n\t");
 
-	for (int l = 2; l < level - 1; l++)
-		printf("if (SH_ORDER == %d) SHFSampler_%d(res,x,y,z);\n\telse ", l, l);
-	printf("SHFSampler_%d(res,x,y,z);\n", level - 1);
+	for (int l = 1; l < level - 1; l++)
+		printf("if (SH_ORDER == %d) SHFSampler_%d(res,x,y,z);\n\telse ", l-1, l-1);
+	printf("SHFSampler_%d(res,x,y,z);\n", level - 2);
 	printf("\treturn res;\n}");
 }
 

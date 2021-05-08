@@ -10,7 +10,8 @@ uniform mat4 P;
 out vec3 localPos;
 
 void main() {
-	localPos = modelPos;
-	gl_Position = P * mat4(mat3(V)) * M * vec4(modelPos, 1.0);
+	localPos = (M * vec4(modelPos, 1.0)).xyz; 
+
+	gl_Position = P * mat4(mat3(V)) * vec4(modelPos, 1.0);
 	gl_Position = gl_Position.xyww;
 }

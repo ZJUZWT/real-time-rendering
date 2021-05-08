@@ -24,34 +24,59 @@ void hdrMapGen(std::string outputPath) {
 				float temp2 = z / fabs(x);
 				check = temp1 <= 1.0f && temp1 >= -1.0f && temp2 <= 1.0f && temp2 >= -1.0f;
 			}
-
 			if (check)
 				for (int c = 0; c < 3; c++)
 					image[(v * width + u) * 3 + 0] = 1.0f;
-			//pos Y
-			check = true;
-			check = y >= 1 / sqrt(3);
-			if (check) {
-				float temp1 = x / fabs(y);
-				float temp2 = z / fabs(y);
-				check = temp1 <= 1.0f && temp1 >= -1.0f && temp2 <= 1.0f && temp2 >= -1.0f;
-			}
+			////neg X
+			//check = true;
+			//check = x <= -1 / sqrt(3);
+			//if (check) {
+			//	float temp1 = y / fabs(x);
+			//	float temp2 = z / fabs(x);
+			//	check = temp1 <= 1.0f && temp1 >= -1.0f && temp2 <= 1.0f && temp2 >= -1.0f;
+			//}
 
-			if (check)
-				for (int c = 0; c < 3; c++)
-					image[(v * width + u) * 3 + 1] = 1.0f;
-			//pos Z
-			check = true;
-			check = z >= 1 / sqrt(3);
-			if (check) {
-				float temp1 = y / fabs(z);
-				float temp2 = x / fabs(z);
-				check = temp1 <= 1.0f && temp1 >= -1.0f && temp2 <= 1.0f && temp2 >= -1.0f;
-			}
+			//if (check)
+			//	for (int c = 0; c < 3; c++)
+			//		image[(v * width + u) * 3 + 1] = 1.0f;
 
-			if (check)
-				for (int c = 0; c < 3; c++)
-					image[(v * width + u) * 3 + 2] = 1.0f;
+
+			////pos Y
+			//check = true;
+			//check = y >= 1 / sqrt(3);
+			//if (check) {
+			//	float temp1 = x / fabs(y);
+			//	float temp2 = z / fabs(y);
+			//	check = temp1 <= 1.0f && temp1 >= -1.0f && temp2 <= 1.0f && temp2 >= -1.0f;
+			//}
+			//if (check)
+			//	for (int c = 0; c < 3; c++)
+			//		image[(v * width + u) * 3 + 1] = 1.0f;
+			////neg Y
+			//check = true;
+			//check = y <= -1 / sqrt(3);
+			//if (check) {
+			//	float temp1 = x / fabs(y);
+			//	float temp2 = z / fabs(y);
+			//	check = temp1 <= 1.0f && temp1 >= -1.0f && temp2 <= 1.0f && temp2 >= -1.0f;
+			//}
+			//if (check)
+			//	for (int c = 0; c < 3; c++)
+			//		image[(v * width + u) * 3 + 0] = 1.0f;
+
+
+			////pos Z
+			//check = true;
+			//check = z >= 1 / sqrt(3);
+			//if (check) {
+			//	float temp1 = y / fabs(z);
+			//	float temp2 = x / fabs(z);
+			//	check = temp1 <= 1.0f && temp1 >= -1.0f && temp2 <= 1.0f && temp2 >= -1.0f;
+			//}
+
+			//if (check)
+			//	for (int c = 0; c < 3; c++)
+			//		image[(v * width + u) * 3 + 2] = 1.0f;
 
 		}
 		std::cout << "\b\b\b\b";

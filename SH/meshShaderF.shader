@@ -2,7 +2,6 @@
 
 layout(location = 0) out vec4 fragColor;
 
-in vec3 worldPos;
 in vec3 color;
 
 vec3 gamma(vec3 color) {
@@ -10,5 +9,6 @@ vec3 gamma(vec3 color) {
 }
 
 void main() {
+	//fragColor = vec4(gamma(color) * 100, 1.0);
 	fragColor = vec4(gamma(color), 1.0);
 }

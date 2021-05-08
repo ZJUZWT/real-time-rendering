@@ -2,42 +2,39 @@
 
 #include "mesh.h"
 #include <fstream>
-
-class ray {
-private:
-	glm::vec3 o;
-	glm::vec3 d;
-public:
-
-};
-
-class intersection {
-private:
-
-public:
-
-};
+#include <direct.h>
 
 class Scene {
 private:
 	int prtIsV;
 	int sampleNum;
-	int SHNum;
+	int SHOrder;
+	int SHType;
 
 public:
 	std::string envMap;
 	std::string sceneName;
-	std::vector<mesh> world;
+	std::vector<model> world;
+
 
 	Scene() {};
 
 	bool rayIntersection_slow(const ray& ray) {
-		//for (mesh in world) {}
+		bool hit = false;
+		for (int i = 0; i < world.size(); i++) {
+			if (world[i].rayIntersection_slow(ray)) {
+				hit = true;
+				break;
+			}
+		}
+		return hit;
 	}
 
-	inline int getSHNum() { return SHNum; }
-	inline int getSHCoefNum() { return (SHNum + 1) * (SHNum + 1); }
+	inline int getV() { return prtIsV; }
+	inline int getSHOrder() { return SHOrder; }
+	inline int getSHCoefNum() { return (SHOrder + 1) * (SHOrder + 1); }
 	inline int getSampleNum() { return sampleNum; }
+	inline int getSHType() { return SHType; }
 
 	//read scene file
 	static std::shared_ptr<Scene> loadScene(std::string fileName) {
@@ -48,11 +45,15 @@ public:
 		//PRT -> 0:unshadowed 1:shadowed
 		std::getline(file, line);
 		if (line.find('#') != -1) line = line.substr(0, line.find('#')); while (line.find(' ') != -1) line = line.substr(0, line.find(' ')); while (line.find('\t') != -1) line = line.substr(0, line.find('\t'));
-		res->prtIsV = line.at(0) - '0';
-		//SH
+		res->prtIsV = std::stoi(line);
+		//SHType
 		std::getline(file, line);
 		if (line.find('#') != -1) line = line.substr(0, line.find('#')); while (line.find(' ') != -1) line = line.substr(0, line.find(' ')); while (line.find('\t') != -1) line = line.substr(0, line.find('\t'));
-		res->SHNum = std::stoi(line);
+		res->SHType = std::stoi(line);
+		//SHOrder
+		std::getline(file, line);
+		if (line.find('#') != -1) line = line.substr(0, line.find('#')); while (line.find(' ') != -1) line = line.substr(0, line.find(' ')); while (line.find('\t') != -1) line = line.substr(0, line.find('\t'));
+		res->SHOrder = std::stoi(line);
 		//sampleNum
 		std::getline(file, line);
 		if (line.find('#') != -1) line = line.substr(0, line.find('#')); while (line.find(' ') != -1) line = line.substr(0, line.find(' ')); while (line.find('\t') != -1) line = line.substr(0, line.find('\t'));
@@ -64,22 +65,26 @@ public:
 
 		res->world.clear();
 		//mesh
+		//while (!file.eof()) {
 		std::getline(file, line);
+		//if (line == "$") break;
+
 		if (line.find('#') != -1) line = line.substr(0, line.find('#')); while (line.find(' ') != -1) line = line.substr(0, line.find(' ')); while (line.find('\t') != -1) line = line.substr(0, line.find('\t'));
 		std::string objFile = line;
 
 		glm::mat4 modelMat = glm::identity<glm::mat4>();
 		glm::vec3 translate;
 		file >> line; while (line[0] == '#') file >> line; translate[0] = std::stof(line); file >> line; translate[1] = std::stof(line); file >> line; translate[2] = std::stof(line);
-		//glm::vec3 rotate;
-		//file >> line; while (line[0] == '#') file >> line; rotate[0] = std::stof(line); file >> line; rotate[1] = std::stof(line); file >> line; rotate[2] = std::stof(line);
 		glm::vec3 scale;
 		file >> line; while (line[0] == '#') file >> line; scale[0] = std::stof(line); file >> line; scale[1] = std::stof(line); file >> line; scale[2] = std::stof(line);
-		modelMat = glm::translate(modelMat, translate); modelMat = glm::scale(modelMat,scale);
+		modelMat = glm::translate(modelMat, translate); modelMat = glm::scale(modelMat, scale);
 
-		res->world.push_back(mesh::loadMesh(objFile, modelMat));
+		res->world.push_back(model::loadModel(objFile, modelMat));
+		//}
 
-		res->sceneName = fileName.substr(0, fileName.find("config")-1);
+		res->sceneName = fileName.substr(0, fileName.find("config") - 1);
+
+		_mkdir(res->sceneName.c_str());
 
 		return res;
 	}

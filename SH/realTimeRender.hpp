@@ -1,4 +1,5 @@
 #pragma once
+#include <iomanip>
 
 const int W = 1280;
 const int H = 768;
@@ -8,13 +9,15 @@ GLuint meshProgram = 0;
 GLuint shaderProgram = 0;
 GLuint shaderCubeProgram = 0;
 
-std::vector<GLuint> loadMesh(std::vector<mesh>);
+std::vector<std::vector<GLuint>> loadMesh(std::vector<model>);
 void initShader();
-void renderMeshes(std::vector<mesh>, glm::mat4 V, glm::mat4 P, std::vector<GLuint>, std::vector<GLuint>);
+void renderModel(std::vector<model>, glm::mat4 V, glm::mat4 P, std::vector<std::vector<GLuint>>, std::vector<std::vector<GLuint>>);
 GLuint cubeHDR(GLuint envHDRHandle, int sizeW, int sizeH);
 GLuint loadEnvLightCoef(std::string sceneName, int coefNum);
-std::vector<GLuint> loadPRTCoef(std::string sceneName, std::vector<mesh>& world, int coefNum);
-void renderCubeHDREnv(GLuint envCubeHDRHandle, glm::mat4 V, glm::mat4 P, GLuint shader, GLuint gamma = true);
+std::vector<glm::vec3> loadEnvLightZHFCoef(std::string sceneName, int coefNum);
+std::vector<glm::vec3> loadEnvSampledOmega(std::string sceneName, int coefNum);
+std::vector<std::vector<GLuint>> loadPRTCoef(std::string sceneName, std::vector<model>& world, int coefNum);
+void renderCubeHDREnv(GLuint envCubeHDRHandle, glm::mat4 M, glm::mat4 V, glm::mat4 P, GLuint shader, GLuint gamma = true);
 void renderHDREnvOnCube(GLuint envHDRHandle, glm::mat4 V, glm::mat4 P, GLuint shader);
 
 void renderBallSet(int size, GLuint shader);
@@ -29,6 +32,7 @@ int realTimeRender(std::shared_ptr<Scene> worldScene) {
 	GLFWwindow* window = glfwCreateWindow(W, H, "SH", nullptr, nullptr);
 	glfwMakeContextCurrent(window);
 
+	glfwSetKeyCallback(window, key_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetMouseButtonCallback(window, mouse_button_callback);
 	glfwSetScrollCallback(window, scroll_callback);
@@ -44,19 +48,88 @@ int realTimeRender(std::shared_ptr<Scene> worldScene) {
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 	//预计算
-	GLuint envHDRHandle = loadHDR(worldScene->envMap);
-	GLuint envHDRCubeHandle = cubeHDR(envHDRHandle, cubeSize, cubeSize);
-	GLuint gEnvLightHandle = loadEnvLightCoef(worldScene->sceneName, worldScene->getSHCoefNum());
-	std::vector<GLuint> gPRTArrayHandle = loadPRTCoef(worldScene->sceneName, worldScene->world, worldScene->getSHCoefNum());
-	std::vector<GLuint> meshesVAO = loadMesh(worldScene->world);
+	std::cout << "LOAD HDR..."; GLuint envHDRHandle = loadHDR(worldScene->envMap); std::cout << "OK" << std::endl;
+	std::cout << "LOAD CUBE HDR..."; GLuint envHDRCubeHandle = cubeHDR(envHDRHandle, cubeSize, cubeSize); std::cout << "OK" << std::endl;
+	std::cout << "LOAD LIGHT COEF..."; GLuint gEnvLightHandle = loadEnvLightCoef(worldScene->sceneName, worldScene->getSHCoefNum()); std::cout << "OK" << std::endl;
+	std::cout << "LOAD SAMPLED OMEGA..."; std::vector<glm::vec3> gEnvSampledOmega = loadEnvSampledOmega(worldScene->sceneName, worldScene->getSHCoefNum()); std::cout << "OK" << std::endl;
+	std::cout << "LOAD LIGHT ZHF..."; std::vector<glm::vec3> gEnvLightZHF = loadEnvLightZHFCoef(worldScene->sceneName, worldScene->getSHCoefNum()); std::cout << "OK" << std::endl;
+	std::cout << "LOAD PRT COEF..."; std::vector<std::vector<GLuint>> gPRTArrayHandle = loadPRTCoef(worldScene->sceneName, worldScene->world, worldScene->getSHCoefNum()); std::cout << "OK" << std::endl;
+	std::cout << "LOAD MESH VAO..."; std::vector<std::vector<GLuint>> meshesVAO = loadMesh(worldScene->world); std::cout << "OK" << std::endl;
 	
 	if (DEBUG) { 
 		std::cout << "Rendering Load Finished!" << std::endl;
 		outputCubeImage("debug/debug", envHDRCubeHandle, cubeSize, cubeSize);
-		std::cout << "Rendering Load Finished!" << std::endl;
 	}
 
+	float time = glfwGetTime();
+	float lastTime = glfwGetTime() - 1 / 144.0;
+	std::cout << "000.0 fps";
+
+	//rotatedMatrix = glm::rotate(rotatedMatrix, (float)PI, rotatedAxis);
+
 	while (!glfwWindowShouldClose(window)) {
+		time = glfwGetTime();
+		rotateAngle += rotateSpeed * (time - lastTime);
+		rotatedMatrix = glm::rotate(glm::identity<glm::mat4>(), rotateAngle, rotatedAxis);
+		//output FPS
+		std::cout << "\b\b\b\b\b\b\b\b\b";
+		std::cout.width(3);
+		std::cout.setf(std::ios::fixed);
+		std::cout << std::setprecision(1) << 1.0 / (time - lastTime) << " fps";
+		lastTime = glfwGetTime();
+		//genZHF
+		if (worldScene->getSHType() == 1) {
+			int SHOrder = worldScene->getSHOrder();
+			int startIndex = 0;
+			std::vector<glm::vec3> rotatedSampledOmega; rotatedSampledOmega.clear();
+			for (int l = 0; l < SHOrder * 2 + 1; l++) {
+				glm::vec3 res(0);
+				//for (int i = 0; i < 3; i++) res[i] = gEnvSampledOmega[l][i];
+				for (int i = 0; i < 3; i++)
+					for (int j = 0; j < 3; j++) res[i] += rotatedMatrix[i][j] * gEnvSampledOmega[l][j];
+				rotatedSampledOmega.push_back(res);
+
+				//std::cout << res.x << " " << res.y << " " << res.z << std::endl;
+			}
+
+			float* ZHE = new float[3* (SHOrder + 1) * (SHOrder + 1)];
+			for (int l = 0; l <= SHOrder; l++) {
+				int tempCoefNum = l * 2 + 1;
+				Eigen::MatrixXd tempMat(tempCoefNum, tempCoefNum);
+				for (int i = 0; i < tempCoefNum; i++) {
+					SHCoef temp = SHFSample(l, rotatedSampledOmega[i].x, rotatedSampledOmega[i].y, rotatedSampledOmega[i].z);
+					for (int j = 0; j < tempCoefNum; j++)
+						tempMat(i, j) = temp[startIndex + j];
+				}
+				
+				tempMat.transposeInPlace();
+				for (int i = 0; i < tempCoefNum; i++) {
+					glm::vec3 tempZHE(0);
+					for (int c = 0; c < 3; c++) {
+						for (int j = 0; j < tempCoefNum; j++) 
+							tempZHE[c] += gEnvLightZHF[startIndex + j][c] * tempMat(i, j);
+					}
+					ZHE[(i + startIndex) * 3 + 0] = tempZHE.x;
+					ZHE[(i + startIndex) * 3 + 1] = tempZHE.y;
+					ZHE[(i + startIndex) * 3 + 2] = tempZHE.z;
+				}
+				startIndex += tempCoefNum;
+			}
+			glBindTexture(GL_TEXTURE_1D, gEnvLightHandle);
+
+			glTexImage1D(
+				GL_TEXTURE_1D,
+				0,
+				GL_R32F,
+				3 * (SHOrder + 1) * (SHOrder + 1),
+				0,
+				GL_RED,
+				GL_FLOAT,
+				ZHE);
+
+			glBindTexture(GL_TEXTURE_1D, 0);
+		}
+
 		glfwPollEvents();
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -83,9 +156,42 @@ int realTimeRender(std::shared_ptr<Scene> worldScene) {
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_1D, gEnvLightHandle);
 
-		renderMeshes(worldScene->world, camera.GetViewMatrix(), projection, meshesVAO, gPRTArrayHandle);
+		renderModel(worldScene->world, camera.GetViewMatrix(), projection, meshesVAO, gPRTArrayHandle);
 		//renderBallSet(0, meshProgram);
-		renderCubeHDREnv(envHDRCubeHandle, camera.GetViewMatrix(), projection, shaderCubeProgram);
+		renderCubeHDREnv(envHDRCubeHandle, rotatedMatrix, camera.GetViewMatrix(), projection, shaderCubeProgram);
+
+		if (DEBUG) {
+			glUseProgram(0);
+			glBindVertexArray(0);
+
+			glm::vec4 p1 = glm::vec4(0, 0, 0, 1.0f);
+			glm::vec4 p2 = glm::vec4(10, 0, 0, 1);
+			glm::vec4 p3 = glm::vec4(0, 10, 0, 1);
+			glm::vec4 p4 = glm::vec4(0, 0, 10, 1);
+			p1 = projection * camera.GetViewMatrix() * p1; p1 /= p1.w;
+			p2 = projection * camera.GetViewMatrix() * p2; p2 /= p2.w;
+			p3 = projection * camera.GetViewMatrix() * p3; p3 /= p3.w;
+			p4 = projection * camera.GetViewMatrix() * p4; p4 /= p4.w;
+			glLineWidth(100);
+
+			glColor3f(1.0f, 0.0f, 0.0f);
+			glBegin(GL_LINES);
+			glVertex3f(p1.x, p1.y, p1.z);
+			glVertex3f(p2.x, p2.y, p2.z);
+			glEnd();
+
+			glColor3f(0.0f, 1.0f, 0.0f);
+			glBegin(GL_LINES);
+			glVertex3f(p1.x, p1.y, p1.z);
+			glVertex3f(p3.x, p3.y, p3.z);
+			glEnd();
+
+			glColor3f(0.0f, 0.0f, 1.0f);
+			glBegin(GL_LINES);
+			glVertex3f(p1.x, p1.y, p1.z);
+			glVertex3f(p4.x, p4.y, p4.z);
+			glEnd();
+		}
 
 		glfwSwapBuffers(window);
 	}
@@ -93,55 +199,61 @@ int realTimeRender(std::shared_ptr<Scene> worldScene) {
 	glfwTerminate();
 }
 
-std::vector<GLuint> loadMesh(std::vector<mesh> world) {
-	std::vector<GLuint> res;
+std::vector<std::vector<GLuint>> loadMesh(std::vector<model> world) {
+	std::vector<std::vector<GLuint>> res;
 
-	for (int i = 0; i < world.size(); i++) {
-		GLuint VAO, VBO, EBO;
-		//创建句柄
-		glGenVertexArrays(1, &VAO);
-		glCreateBuffers(1, &VBO);
-		glCreateBuffers(1, &EBO);
-		//开辟内存
-		GLuint lenP = world[i].p.size() * 3;
-		GLfloat* p = new GLfloat[lenP/3*4];
-		for (int j = 0; j < lenP / 3; j++) {
-			glm::vec3 temp = world[i].p[j];
-			p[j * 4 + 0] = temp[0]; p[j * 4 + 1] = temp[1]; p[j * 4 + 2] = temp[2]; p[j * 4 + 3] = j;
-		}
-		GLuint lenP_indices = world[i].p_indices.size() * 3;
-		GLuint* p_indices = new GLuint[lenP_indices];
-		for (int j = 0; j < lenP_indices / 3; j++) {
-			glm::vec3 temp = world[i].p_indices[j];
-			p_indices[j * 3 + 0] = temp[0] ; p_indices[j * 3 + 1] = temp[1] ; p_indices[j * 3 + 2] = temp[2] ;
-		}
-
-		glNamedBufferStorage(VBO, lenP / 3 * 4 * sizeof(GLfloat), p, 0);
-		glNamedBufferStorage(EBO, lenP_indices * sizeof(GLfloat), p_indices, 0);
-		//绑定内存
-		glBindVertexArray(VAO);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		//数据迁移
-		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
-		glEnableVertexAttribArray(0);
-
-		if (DEBUG) {
-			std::cout << "Mesh Data Output..." ;
-			std::ofstream debugOutFile("debugMESH.txt");
-			for (int j = 0; j < lenP_indices / 3; j++) {
-				debugOutFile 
-					<< p[p_indices[j * 3 + 0] * 4 + 0] << " " << p[p_indices[j * 3 + 0] * 4 + 1] << " " << p[p_indices[j * 3 + 0] * 4 + 2] << p[p_indices[j * 3 + 0] * 4 + 3] << " " << "/"
-					<< p[p_indices[j * 3 + 1] * 4 + 0] << " " << p[p_indices[j * 3 + 1] * 4 + 1] << " " << p[p_indices[j * 3 + 1] * 4 + 2] << p[p_indices[j * 3 + 0] * 4 + 3] << " " << "/"
-					<< p[p_indices[j * 3 + 2] * 4 + 0] << " " << p[p_indices[j * 3 + 2] * 4 + 1] << " " << p[p_indices[j * 3 + 2] * 4 + 2] << p[p_indices[j * 3 + 0] * 4 + 3] << " " << std::endl;
+	for (int modelID = 0; modelID < world.size(); modelID++) {
+		std::vector<GLuint> res_model;
+		model tempModel = world[modelID];
+		for (int meshID = 0; meshID < tempModel.meshes.size(); meshID++) {
+			GLuint VAO, VBO, EBO;
+			//创建句柄
+			glGenVertexArrays(1, &VAO);
+			glCreateBuffers(1, &VBO);
+			glCreateBuffers(1, &EBO);
+			//开辟内存
+			GLuint lenP = tempModel.meshes[meshID].p.size() * 3;
+			GLfloat* p = new GLfloat[lenP / 3 * 4];
+			for (int j = 0; j < lenP / 3; j++) {
+				glm::vec3 temp = tempModel.meshes[meshID].p[j];
+				p[j * 4 + 0] = temp[0]; p[j * 4 + 1] = temp[1]; p[j * 4 + 2] = temp[2]; p[j * 4 + 3] = j;
 			}
-			debugOutFile.close();
-			std::cout << " OK!" << std::endl;
+			GLuint lenP_indices = tempModel.meshes[meshID].p_indices.size() * 3;
+			GLuint* p_indices = new GLuint[lenP_indices];
+			for (int j = 0; j < lenP_indices / 3; j++) {
+				glm::vec3 temp = tempModel.meshes[meshID].p_indices[j];
+				p_indices[j * 3 + 0] = temp[0]; p_indices[j * 3 + 1] = temp[1]; p_indices[j * 3 + 2] = temp[2];
+			}
+
+			glNamedBufferStorage(VBO, lenP / 3 * 4 * sizeof(GLfloat), p, 0);
+			glNamedBufferStorage(EBO, lenP_indices * sizeof(GLfloat), p_indices, 0);
+			//绑定内存
+			glBindVertexArray(VAO);
+			glBindBuffer(GL_ARRAY_BUFFER, VBO);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+			//数据迁移
+			glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
+			glEnableVertexAttribArray(0);
+
+			if (DEBUG) {
+				//std::cout << "Mesh Data Output...";
+				std::ofstream debugOutFile("debugMESH.txt");
+				for (int j = 0; j < lenP_indices / 3; j++) {
+					debugOutFile
+						<< p[p_indices[j * 3 + 0] * 4 + 0] << " " << p[p_indices[j * 3 + 0] * 4 + 1] << " " << p[p_indices[j * 3 + 0] * 4 + 2] << p[p_indices[j * 3 + 0] * 4 + 3] << " " << "/"
+						<< p[p_indices[j * 3 + 1] * 4 + 0] << " " << p[p_indices[j * 3 + 1] * 4 + 1] << " " << p[p_indices[j * 3 + 1] * 4 + 2] << p[p_indices[j * 3 + 0] * 4 + 3] << " " << "/"
+						<< p[p_indices[j * 3 + 2] * 4 + 0] << " " << p[p_indices[j * 3 + 2] * 4 + 1] << " " << p[p_indices[j * 3 + 2] * 4 + 2] << p[p_indices[j * 3 + 0] * 4 + 3] << " " << std::endl;
+				}
+				debugOutFile.close();
+				//std::cout << " OK!" << std::endl;
+			}
+
+			delete[] p;
+			delete[] p_indices;
+			res_model.push_back(VAO);
 		}
 
-		delete[] p;
-		delete[] p_indices;
-		res.push_back(VAO);
+		res.push_back(res_model);
 	}
 
 	return res;
@@ -182,6 +294,18 @@ void initShader() {
 		glAttachShader(meshProgram, shader);
 	}
 	glLinkProgram(meshProgram);
+}
+
+std::vector<glm::vec3> loadEnvSampledOmega(std::string sceneName, int coefNum) {
+	std::vector<glm::vec3> res;
+	std::ifstream input(sceneName + "/" + "ENV_OMEGA_coef.txt");
+	for (int i = 0; i < coefNum; i++) {
+		glm::vec3 temp;
+		input >> temp.x >> temp.y >> temp.z;
+		res.push_back(temp);
+	}
+	input.close();
+	return res;
 }
 GLuint cubeVAO = 0;
 GLuint cubeVBO = 0;
@@ -266,7 +390,7 @@ void renderHDREnvOnCube(GLuint envHDRHandle, glm::mat4 V, glm::mat4 P, GLuint sh
 
 	glUseProgram(0);
 }
-void renderCubeHDREnv(GLuint envCubeHDRHandle, glm::mat4 V, glm::mat4 P, GLuint shader, GLuint gamma) {
+void renderCubeHDREnv(GLuint envCubeHDRHandle, glm::mat4 M, glm::mat4 V, glm::mat4 P, GLuint shader, GLuint gamma) {
 	if (!cubeVAO) {
 		static const GLfloat cubeVertices[36][8] = {
 			// back face
@@ -332,7 +456,7 @@ void renderCubeHDREnv(GLuint envCubeHDRHandle, glm::mat4 V, glm::mat4 P, GLuint 
 	glUseProgram(shader);
 
 	uniformLocation = glGetUniformLocation(shader, "M");
-	glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, glm::value_ptr(glm::mat4(1.0)));
+	glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, glm::value_ptr(M));
 	uniformLocation = glGetUniformLocation(shader, "V");
 	glUniformMatrix4fv(uniformLocation, 1, GL_FALSE, glm::value_ptr(V));
 	uniformLocation = glGetUniformLocation(shader, "P");
@@ -403,7 +527,7 @@ GLuint cubeHDR(GLuint envHDRHandle, int sizeW, int sizeH) {
 	return envCubemap;
 }
 GLuint loadEnvLightCoef(std::string sceneName, int coefNum) {
-	std::ifstream input(sceneName + "_ENV_coef.txt");
+	std::ifstream input(sceneName + "/" + "ENV_coef.txt");
 	GLfloat* coef = new GLfloat[coefNum * 3];
 	for (int i = 0; i < coefNum; i++) {
 		input >> coef[i * 3 + 0]; input >> coef[i * 3 + 1]; input >> coef[i * 3 + 2];
@@ -430,88 +554,111 @@ GLuint loadEnvLightCoef(std::string sceneName, int coefNum) {
 		coef
 	);
 	if (DEBUG) {
-		std::cout << "Env Data Output...";
+		//std::cout << "Env Data Output...";
 		std::ofstream debugOutFile("debugENV.txt");
 		for (int j = 0; j < coefNum; j++) {
 			debugOutFile
 				<< coef[j * 3 + 0] << " " << coef[j * 3 + 1] << " " << coef[j * 3 + 2] << std::endl;
 		}
 		debugOutFile.close();
-		std::cout << " OK!" << std::endl;
+		//std::cout << " OK!" << std::endl;
 	}
 
 	delete[] coef;
 	return envArray;
 }
-std::vector<GLuint> loadPRTCoef(std::string sceneName, std::vector<mesh>& world, int coefNum) {
-	std::vector<GLuint> res;
+std::vector<glm::vec3> loadEnvLightZHFCoef(std::string sceneName, int coefNum) {
+	std::vector<glm::vec3> res;
+	std::ifstream input(sceneName + "/" + "ENV_ZHF_coef.txt");
+	for (int i = 0; i < coefNum; i++) {
+		glm::vec3 temp;
+		input >> temp.x >> temp.y >> temp.z;
+		res.push_back(temp);
+	}
+	input.close();
+	return res;
+}
+std::vector<std::vector<GLuint>> loadPRTCoef(std::string sceneName, std::vector<model>& world, int coefNum) {
+	std::vector<std::vector<GLuint>> res;
 
-	for (int meshID = 0; meshID < world.size(); meshID++) {
-		int pNum = world[meshID].p.size();
-
-		std::ifstream input(sceneName + "_PRT_" + world[meshID].objName + "_coef.txt");
-		GLfloat* coef = new GLfloat[coefNum * pNum];
-		for (int i = 0; i < pNum; i++) {
-			int ID;
-			input >> ID;
-			for (int j = 0; j < coefNum; j++) {
-				input >> coef[ID * coefNum + j];
-			}
-		}
-		input.close();
-
-		GLuint prtArray;
-		glGenTextures(1, &prtArray);
-		glBindTexture(GL_TEXTURE_1D, prtArray);
-
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		glTexImage1D(
-			GL_TEXTURE_1D,
-			0,
-			GL_R32F,
-			coefNum * pNum,
-			0,
-			GL_RED,
-			GL_FLOAT,
-			coef
-		);
-
-		if (DEBUG) {
-			std::cout << "PRT Data Output...";
-			std::ofstream debugOutFile("debugPRT.txt");
+	for (int modelID = 0; modelID < world.size(); modelID++) {
+		model tempModel = world[modelID];
+		std::vector<GLuint> res_mesh;
+		std::ifstream input; 
+		for (int meshID = 0; meshID < tempModel.meshes.size(); meshID++) {
+			int pNum = tempModel.meshes[meshID].p.size();
+			
+			input.open(sceneName + "/" + "PRT_" + world[modelID].objName + "_MESH_" + std::to_string(meshID) + "_coef.txt");
+			GLfloat* coef = new GLfloat[coefNum * pNum];
 			for (int i = 0; i < pNum; i++) {
-				debugOutFile << i << " ";
-				for (int j = 0; j < coefNum; j++) debugOutFile << coef[i * coefNum + j] << " ";
-				debugOutFile << std::endl;
+				int ID;
+				input >> ID;
+				for (int j = 0; j < coefNum; j++) {
+					input >> coef[ID * coefNum + j];
+				}
+				//std::cout << coef[ID * coefNum] << std::endl;
 			}
-			debugOutFile.close();
-			std::cout << " OK!" << std::endl;
-		}
+			input.close();
 
-		res.push_back(prtArray);
-		delete[] coef;
+			GLuint prtArray;
+			glGenTextures(1, &prtArray);
+			glBindTexture(GL_TEXTURE_2D, prtArray);
+
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+			glTexImage2D(
+				GL_TEXTURE_2D,
+				0,
+				GL_R32F,
+				coefNum,
+				pNum,
+				0,
+				GL_RED,
+				GL_FLOAT,
+				coef
+			);
+
+			if (DEBUG) {
+				//std::cout << "PRT Data Output...";
+				std::ofstream debugOutFile("debugPRT.txt");
+				for (int i = 0; i < pNum; i++) {
+					debugOutFile << i << " ";
+					for (int j = 0; j < coefNum; j++) debugOutFile << coef[i * coefNum + j] << " ";
+					debugOutFile << std::endl;
+				}
+				debugOutFile.close();
+				//std::cout << " OK!" << std::endl;
+			}
+			res_mesh.push_back(prtArray);
+			delete[] coef;
+		}
+		res.push_back(res_mesh);
 	}
 	return res;
 }
-void renderMeshes(std::vector<mesh> world, glm::mat4 V, glm::mat4 P, std::vector<GLuint> meshesVAO, std::vector<GLuint> prtCoefHandle) {
+void renderModel(std::vector<model> world, glm::mat4 V, glm::mat4 P, std::vector<std::vector<GLuint>> modelVAO, std::vector<std::vector<GLuint>> prtCoefHandle) {
 	//std::cout << meshesVAO.size();
-	for (int i = 0; i < meshesVAO.size(); i++) {
-		glUniformMatrix4fv(
-			glGetUniformLocation(meshProgram, "M"),
-			1, GL_FALSE,
-			glm::value_ptr(world[i].M));
-		glUniform1i(
-			glGetUniformLocation(meshProgram, "prtCoef"),
-			1);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_1D, prtCoefHandle[i]);
+	for (int modelID = 0; modelID < modelVAO.size(); modelID++) {
+		std::vector<mesh> tempMesh = world[modelID].meshes;
+		std::vector<GLuint> meshesVAO = modelVAO[modelID];
+		std::vector<GLuint> meshesPRTCoef = prtCoefHandle[modelID];
+		for (int meshID = 0; meshID < meshesVAO.size(); meshID++) {
+			glUniformMatrix4fv(
+				glGetUniformLocation(meshProgram, "M"),
+				1, GL_FALSE,
+				glm::value_ptr(world[modelID].M));
+			glUniform1i(
+				glGetUniformLocation(meshProgram, "prtCoef"),
+				1);
+			glActiveTexture(GL_TEXTURE1);
+			glBindTexture(GL_TEXTURE_2D, meshesPRTCoef[meshID]);
 
-		int elementNum = world[i].p_indices.size() * 3;
+			int elementNum = tempMesh[meshID].p_indices.size() * 3;
 
-		glBindVertexArray(meshesVAO[i]);
-		glDrawElements(GL_TRIANGLES, elementNum, GL_UNSIGNED_INT, 0);
+			glBindVertexArray(meshesVAO[meshID]);
+			glDrawElements(GL_TRIANGLES, elementNum, GL_UNSIGNED_INT, 0);
+		}
 	}
 }
 unsigned int sphereVAO = 0;

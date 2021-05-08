@@ -2,6 +2,11 @@
 
 Camera camera(glm::vec3(0.1f, 10.0f, 10.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 
+float rotateSpeed = 0;
+float rotateAngle = 0;
+glm::vec3 rotatedAxis(0, 1, 0);
+glm::mat4 rotatedMatrix(glm::identity<glm::mat4>());
+
 double lastX, lastY;
 int left_button_pressed = 0;
 int left_button_pressed_just = 0;
@@ -63,7 +68,14 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		right_button_pressed_just = 1;
 		//printf("GET RIGHT BUTTON PRESS\n");
 	}
-
+	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
+		right_button_pressed = 0;
+		//printf("GET RIGHT BUTTON RELEASE\n");
+	}
+	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
+		right_button_pressed = 0;
+		//printf("GET RIGHT BUTTON RELEASE\n");
+	}
 	if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_RELEASE) {
 		right_button_pressed = 0;
 		//printf("GET RIGHT BUTTON RELEASE\n");
@@ -72,25 +84,18 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 	camera.ProcessMouseScroll(yoffset);
 }
-//void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-//	if (key == GLFW_KEY_W && action == GLFW_REPEAT) {
-//		ObjPos += glm::vec3(-0.05, 0, 0);
-//		ObjVel = glm::vec3(-1, 0, 0);
-//		printf("W\n");
-//	}
-//	if (key == GLFW_KEY_A && action == GLFW_REPEAT) {
-//		ObjPos += glm::vec3(0, 0, 0.05);
-//		ObjVel = glm::vec3(0, 0, 1);
-//		printf("A\n");
-//	}
-//	if (key == GLFW_KEY_S && action == GLFW_REPEAT) {
-//		ObjPos += glm::vec3(0.05, 0, 0);
-//		ObjVel = glm::vec3(1, 0, 0);
-//		printf("S\n");
-//	}
-//	if (key == GLFW_KEY_D && action == GLFW_REPEAT) {
-//		ObjPos += glm::vec3(0, 0, -0.05);
-//		ObjVel = glm::vec3(0, 0, -1);
-//		printf("D\n");
-//	}
-//}
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+	if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
+		rotateSpeed += 0.1;
+		//printf("Rotate SPEED : %f\n", rotateSpeed);
+	}
+	if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
+		rotateSpeed -= 0.1;
+		if (rotateSpeed < 0) rotateSpeed = 0;
+		//printf("Rotate SPEED : %f\n", rotateSpeed);
+	}
+	if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+		rotatedAxis = glm::vec3(rotatedAxis.y, rotatedAxis.z, rotatedAxis.x);
+		rotatedMatrix = glm::rotate(glm::identity<glm::mat4>(), rotateAngle, rotatedAxis);
+	}
+}
