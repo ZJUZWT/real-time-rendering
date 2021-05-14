@@ -30,10 +30,10 @@ void SHFSampler_2(SHCoef& pSH, const Float fX, const Float fY, const Float fZ) {
 	pSH[5] = fTmpB*fS0;
 
 	fC1 = fX*fC0 - fY*fS0;
-	fS1 = fX*fS0 + fY*fC0;
+	fS1 = fX*fY;
 	fTmpA = 0.54627421529603958916;
 	pSH[8] = fTmpA*fC1;
-	pSH[4] = fTmpA*fS1;
+	pSH[4] = 1.09254843059207917833 * fS1;
 }
 void SHFSampler_3(SHCoef& pSH, const Float fX, const Float fY, const Float fZ) {
 	Float fC0, fC1, fS0, fS1, fTmpA, fTmpB, fTmpC; Float fZ2 = fZ * fZ; 
@@ -4179,12 +4179,11 @@ void SHFSampler_18(SHCoef& pSH, const Float fX, const Float fY, const Float fZ) 
 	pSH[360] = fTmpA*fC1;
 	pSH[324] = fTmpA*fS1;
 }
-SHCoef SHFSample(const int SH_ORDER, Float x, Float y, Float z) {
+void SHFSample(SHCoef& res, const int SH_ORDER, Float x, Float z, Float y) {
 	Float r = sqrt(x * x + y * y + z * z);
 	x /= r;
 	y /= r;
 	z /= r;
-	SHCoef res(SH_ORDER);
 	if (SH_ORDER == 0) SHFSampler_0(res,x,y,z);
 	else if (SH_ORDER == 1) SHFSampler_1(res,x,y,z);
 	else if (SH_ORDER == 2) SHFSampler_2(res,x,y,z);
@@ -4204,5 +4203,4 @@ SHCoef SHFSample(const int SH_ORDER, Float x, Float y, Float z) {
 	else if (SH_ORDER == 16) SHFSampler_16(res,x,y,z);
 	else if (SH_ORDER == 17) SHFSampler_17(res,x,y,z);
 	else SHFSampler_18(res,x,y,z);
-	return res;
 }

@@ -4,6 +4,13 @@
 #include <fstream>
 #include <direct.h>
 
+class areaLight {
+public:
+	int num;
+	std::vector<glm::vec3> p;
+	glm::vec3 color;
+};
+
 class Scene {
 private:
 	int prtIsV;
@@ -15,7 +22,7 @@ public:
 	std::string envMap;
 	std::string sceneName;
 	std::vector<model> world;
-
+	std::vector<areaLight> light;
 
 	Scene() {};
 
@@ -63,29 +70,42 @@ public:
 		if (line.find('#') != -1) line = line.substr(0, line.find('#')); while (line.find(' ') != -1) line = line.substr(0, line.find(' ')); while (line.find('\t') != -1) line = line.substr(0, line.find('\t'));
 		res->envMap = line;
 
+		//model
 		res->world.clear();
-		//mesh
-		//while (!file.eof()) {
 		std::getline(file, line);
-		//if (line == "$") break;
-
 		if (line.find('#') != -1) line = line.substr(0, line.find('#')); while (line.find(' ') != -1) line = line.substr(0, line.find(' ')); while (line.find('\t') != -1) line = line.substr(0, line.find('\t'));
 		std::string objFile = line;
-
 		glm::mat4 modelMat = glm::identity<glm::mat4>();
 		glm::vec3 translate;
 		file >> line; while (line[0] == '#') file >> line; translate[0] = std::stof(line); file >> line; translate[1] = std::stof(line); file >> line; translate[2] = std::stof(line);
 		glm::vec3 scale;
 		file >> line; while (line[0] == '#') file >> line; scale[0] = std::stof(line); file >> line; scale[1] = std::stof(line); file >> line; scale[2] = std::stof(line);
 		modelMat = glm::translate(modelMat, translate); modelMat = glm::scale(modelMat, scale);
-
 		res->world.push_back(model::loadModel(objFile, modelMat));
-		//}
+
+		//light
+		std::cout << "LOAD AREA LIGHT\n";
+		std::getline(file, line);
+		while (line.find("polygonLight") == -1) std::getline(file, line);
+
+		if (!file.eof()) {
+			std::getline(file, line);
+			if (line.find('#') != -1) line = line.substr(0, line.find('#')); while (line.find(' ') != -1) line = line.substr(0, line.find(' ')); while (line.find('\t') != -1) line = line.substr(0, line.find('\t'));
+			std::string lightFileName = line;
+			std::ifstream lightFile(lightFileName);
+			areaLight temp;
+			lightFile >> temp.num;  std::cout << temp.num;
+			for (int i = 0; i < temp.num; i++) {
+				glm::vec3 t;
+				lightFile >> t.x >> t.y >> t.z;
+				temp.p.push_back(t);
+			}
+			lightFile >> temp.color.x >> temp.color.y >> temp.color.z;
+			res->light.push_back(temp);
+		}
 
 		res->sceneName = fileName.substr(0, fileName.find("config") - 1);
-
 		_mkdir(res->sceneName.c_str());
-
 		return res;
 	}
 };

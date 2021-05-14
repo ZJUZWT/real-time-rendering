@@ -27,6 +27,10 @@ void hdrMapGen(std::string outputPath) {
 			if (check)
 				for (int c = 0; c < 3; c++)
 					image[(v * width + u) * 3 + 0] = 1.0f;
+			//image[(v * width + u) * 3 + 0] = x >= 0;
+			//image[(v * width + u) * 3 + 0] = 0.5;
+			//image[(v * width + u) * 3 + 1] = 0.5;
+			//image[(v * width + u) * 3 + 2] = 0.5;
 			////neg X
 			//check = true;
 			//check = x <= -1 / sqrt(3);

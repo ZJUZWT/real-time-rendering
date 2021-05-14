@@ -7,6 +7,8 @@ float rotateAngle = 0;
 glm::vec3 rotatedAxis(0, 1, 0);
 glm::mat4 rotatedMatrix(glm::identity<glm::mat4>());
 
+bool backGroundShading = true;
+
 double lastX, lastY;
 int left_button_pressed = 0;
 int left_button_pressed_just = 0;
@@ -97,5 +99,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
 		rotatedAxis = glm::vec3(rotatedAxis.y, rotatedAxis.z, rotatedAxis.x);
 		rotatedMatrix = glm::rotate(glm::identity<glm::mat4>(), rotateAngle, rotatedAxis);
+	}
+	if (key == GLFW_KEY_B && action == GLFW_PRESS) {
+		backGroundShading != backGroundShading;
 	}
 }

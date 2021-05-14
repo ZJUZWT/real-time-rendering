@@ -35,6 +35,7 @@ void precomputeENV(std::shared_ptr<Scene> worldScene) {
 	float* data = stbi_loadf(path.c_str(), &width, &height, &nrChannels, 0);
 
 	SHColor env_SH(SHOrder);
+	SHCoef SHF(SHOrder);
 	for (int i = 0; i < coefNum; i++)
 		for (int c = 0; c < nrChannels; c++)
 			env_SH[c][i] = 0;
@@ -42,7 +43,8 @@ void precomputeENV(std::shared_ptr<Scene> worldScene) {
 	std::cout << "Precompute ENV :   0%";
 
 	for (int v = 0; v < height; v++) { //ÀèÂüºÍ
-		Float area = 2 * PI * (cos(v * 1.0 / (height + 1)) - cos((v * 1.0 + 1) / (height + 1))) / width;
+		Float area = 2 * PI * (cos(v * 1.0 / (height + 1) * PI) - cos((v * 1.0 + 1) / (height + 1) * PI)) / width;
+
 		for (int u = 0; u < width; u++) {
 			Float Li[3] = {
 				data[(v * width + u) * nrChannels + 0],
@@ -57,8 +59,8 @@ void precomputeENV(std::shared_ptr<Scene> worldScene) {
 				x = sqrt(1 - y * y) * cos((u * 1.0 / width) * PI * 2),
 				z = sqrt(1 - y * y) * sin((u * 1.0 / width) * PI * 2);
 
-			auto SHF = SHFSample(SHOrder, x, y, z);
- 
+			SHFSample(SHF, SHOrder, x, y, z);
+
 			for (int c = 0; c < nrChannels; c++)
 				for (int i = 0; i < coefNum; i++)
 					env_SH[c][i] += Li[c] * SHF[i] * area;
@@ -86,6 +88,20 @@ void precomputePRT(std::shared_ptr<Scene> worldScene) {
 	int coefNum = (1 + SHOrder) * (1 + SHOrder);
 	int sampleNum = worldScene->getSampleNum();
 
+	std::vector<glm::vec3> SHEnv;
+	std::ofstream debugPreOutput;
+	std::ofstream debugOutputFile;
+	if (DEBUG) {
+		std::ifstream input(sceneName + "/" + "ENV_coef.txt");
+		for (int i = 0; i < coefNum; i++) {
+			glm::vec3 temp;
+			input >> temp.x >> temp.y >> temp.z;
+			SHEnv.push_back(temp);
+		}
+		input.close();
+		debugOutputFile.open(sceneName + "/" + "DEBUG_PRT_res.txt");
+	}
+
 	for (int modelID = 0; modelID < worldScene->world.size(); modelID++) {
 		model &tempModel = worldScene->world[modelID];
 		for (int meshID = 0; meshID < tempModel.meshes.size(); meshID++) {
@@ -93,17 +109,19 @@ void precomputePRT(std::shared_ptr<Scene> worldScene) {
 			unsigned int* vertexMap = new unsigned int[tempMesh.p.size()]{ 0 };
 			std::cout << "Precompute PRT MODEL : " << tempModel.objName << " - MESH : " << meshID << " :   0%";
 			outputFile.open(sceneName + "/" + "PRT_" + tempModel.objName + "_MESH_" + std::to_string(meshID) + "_coef.txt");
+			SHCoef shCoef(SHOrder);
+			SHCoef SHF(SHOrder);
+			std::random_device rd;
+			std::mt19937 gen(rd());
+			std::uniform_real_distribution<> rng(0.0, 1.0);
 
 			for (int vertexID = 0; vertexID < tempMesh.p_indices.size() * 3; vertexID++) {
 				if (!vertexMap[tempMesh.p_indices[vertexID / 3][vertexID % 3]]) { 
 					glm::vec3 p = tempMesh.p[tempMesh.p_indices[vertexID / 3][vertexID % 3]];
 					glm::vec3 n = tempMesh.n[tempMesh.p_indices[vertexID / 3][vertexID % 3]];
-					SHCoef shCoef(SHOrder);
-					//sample2 reference
+					//for (int i = 0; i < coefNum; i++) shCoef[i] = 0;
+			//		//sample2 reference
 					int sample_side = sqrt(sampleNum);
-					std::random_device rd;
-					std::mt19937 gen(rd());
-					std::uniform_real_distribution<> rng(0.0, 1.0);
 					for (int sample1 = 0; sample1 < sample_side; sample1++) {
 						for (int sample2 = 0; sample2 < sample_side; sample2++) {
 							double alpha = (sample1 + rng(gen)) / sample_side;
@@ -114,27 +132,38 @@ void precomputePRT(std::shared_ptr<Scene> worldScene) {
 
 							glm::vec3 wi(sin(theta) * cos(phi), cos(theta), sin(theta) * sin(phi));
 							Float NdotW = glm::dot(n, wi);
-							if (NdotW < 0) continue;
+							if (NdotW <= 0) continue;
 
 							double func_value = NdotW;
 							if (worldScene->getV() != 0) {
 								ray ray(p, wi);
-								func_value = 1 - worldScene->rayIntersection_slow(ray);
+								func_value *= 1 - worldScene->rayIntersection_slow(ray);
 							}
 
-							auto SHF = SHFSample(SHOrder, wi[0], wi[1], wi[2]);
+							SHFSample(SHF, SHOrder, wi[0], wi[1], wi[2]);
+							SHFSample(SHF, SHOrder, n.x, n.y, n.z);
 
 							for (int i = 0; i < coefNum; i++) shCoef[i] += SHF[i] * func_value;
+
+							//if (tempMesh.p_indices[vertexID / 3][vertexID % 3] > 5000)
+								//std::cout << tempMesh.p_indices[vertexID / 3][vertexID % 3] << " " << wi[0] << " " << SHF[0] << " " << shCoef[0] << std::endl;
 						}
 					}
 
-					//output
-					for (int i = 0; i < coefNum; i++) shCoef[i] /= sampleNum, shCoef[i] *= 4 * PI;
+			//		//output
+					for (int i = 0; i < coefNum; i++) shCoef[i] /= sampleNum, shCoef[i] *= 4 /** PI*/;
 					outputFile << tempMesh.p_indices[vertexID / 3][vertexID % 3] << " ";
 					for (int i = 0; i < coefNum; i++) outputFile << shCoef[i] << " ";
 					outputFile << std::endl;
 
 					vertexMap[tempMesh.p_indices[vertexID / 3][vertexID % 3]] = 1;
+
+					if (DEBUG) {
+						debugOutputFile << tempMesh.p_indices[vertexID / 3][vertexID % 3] << " ";
+						glm::vec3 SH(0);
+						for (int i = 9; i < 16; i++) SH += shCoef[i] * SHEnv[i];
+						debugOutputFile << SH.x << " " << SH.y << " " << SH.z << " " << std::endl;
+					}
 				}
 
 				std::cout << "\b\b\b\b";
@@ -142,9 +171,12 @@ void precomputePRT(std::shared_ptr<Scene> worldScene) {
 				std::cout << vertexID * 100 / (tempMesh.p_indices.size() * 3 - 1) << "%";
 			}
 			std::cout << std::endl;
-			outputFile.close();
+			//outputFile.close();
 			delete[] vertexMap;
 		}
+	}
+	if (DEBUG) {
+		debugOutputFile.close();
 	}
 }
 void precomputeZHCOEF(std::shared_ptr<Scene> worldScene) {
@@ -164,6 +196,7 @@ void precomputeZHCOEF(std::shared_ptr<Scene> worldScene) {
 		for (int c = 0; c < 3; c++)
 			inputFile >> env_SH[c][i] ;
 	}
+	std::vector<Eigen::MatrixXd> A;
 
 	while (1) {
 		sampleOmega.clear();
@@ -171,14 +204,14 @@ void precomputeZHCOEF(std::shared_ptr<Scene> worldScene) {
 			sampleOmega.push_back(sphericalRandomSample());
 
 		bool allInv = true;
-		std::vector<Eigen::MatrixXd> A;
 		A.clear();
 		int startIndex = 0;
+		SHCoef temp(SHOrder);
 		for (int l = 0; l <= SHOrder; l++) {
 			int tempCoefNum = l * 2 + 1;
 			Eigen::MatrixXd Y(tempCoefNum, tempCoefNum);
 			for (int i = 0; i < tempCoefNum; i++) {
-				SHCoef temp = SHFSample(l, sampleOmega[i].x, sampleOmega[i].y, sampleOmega[i].z);
+				SHFSample(temp, l, sampleOmega[i].x, sampleOmega[i].y, sampleOmega[i].z);
 				for (int j = 0; j < tempCoefNum; j++)
 					Y(i, j) = temp[startIndex + j];
 			}
@@ -212,7 +245,6 @@ void precomputeZHCOEF(std::shared_ptr<Scene> worldScene) {
 			break;
 		}
 	}
-	std::cout << "Precompute ENV ZHF :  OK!\n";
 	outputFile.open(sceneName + "/" + "ENV_ZHF_coef.txt");
 	for (int i = 0; i < coefNum; i++) {
 		for (int c = 0; c < 3; c++)
@@ -225,16 +257,22 @@ void precomputeZHCOEF(std::shared_ptr<Scene> worldScene) {
 		outputFile << sampleOmega[i].x << " " << sampleOmega[i].y << " " << sampleOmega[i].z << std::endl;
 	}
 	outputFile.close();
+	outputFile.open(sceneName + "/" + "ENV_A_coef.txt");
+	for (int i = 0; i <= SHOrder; i++) {
+		outputFile << A[i] << std::endl;
+	}
+	outputFile.close();
 
 	if (DEBUG) {
 		std::ofstream outputY(sceneName + "/" + "ENV_Y.txt");
 		int startIndex = 0;
 		outputFile.open(sceneName + "/" + "ENV_ZHE_coef.txt");
+		SHCoef temp(SHOrder);
 		for (int l = 0; l <= SHOrder; l++) {
 			int tempCoefNum = l * 2 + 1;
 			Eigen::MatrixXd tempMat(tempCoefNum, tempCoefNum);
 			for (int i = 0; i < tempCoefNum; i++) { 
-				SHCoef temp = SHFSample(l, sampleOmega[i].x, sampleOmega[i].y, sampleOmega[i].z);
+				SHFSample(temp, l, sampleOmega[i].x, sampleOmega[i].y, sampleOmega[i].z);
 				for (int j = 0; j < tempCoefNum; j++)
 					tempMat(i, j) = temp[startIndex + j];
 			}
@@ -254,10 +292,15 @@ void precomputeZHCOEF(std::shared_ptr<Scene> worldScene) {
 		outputFile.close();
 		outputY.close();
 	}
+
+	std::cout << "Precompute ENV ZHF :  OK!\n";
 }
-void precomputePretabulatedMap(std::shared_ptr<Scene> worldScene) {
+
+void precomputeAreaLightCOEF(std::shared_ptr<Scene> worldScene) {
 
 }
+
+
 
 void precompute(std::shared_ptr<Scene> worldScene) {
 	//environment light map sH precompute
@@ -270,9 +313,6 @@ void precompute(std::shared_ptr<Scene> worldScene) {
 
 	//zonal harmonics ZH precompute
 	precomputeZHCOEF(worldScene);
-	if (worldScene->getSHType() == 2) {
-		precomputePretabulatedMap(worldScene);
-	}
 	//area light
-
+	precomputeAreaLightCOEF(worldScene);
 }

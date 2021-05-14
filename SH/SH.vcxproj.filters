@@ -82,5 +82,8 @@
     <None Include="meshShaderF.shader">
       <Filter>Shader</Filter>
     </None>
+    <None Include="areaLightCoefV.shader">
+      <Filter>Shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

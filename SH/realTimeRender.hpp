@@ -19,13 +19,14 @@ std::vector<glm::vec3> loadEnvSampledOmega(std::string sceneName, int coefNum);
 std::vector<std::vector<GLuint>> loadPRTCoef(std::string sceneName, std::vector<model>& world, int coefNum);
 void renderCubeHDREnv(GLuint envCubeHDRHandle, glm::mat4 M, glm::mat4 V, glm::mat4 P, GLuint shader, GLuint gamma = true);
 void renderHDREnvOnCube(GLuint envHDRHandle, glm::mat4 V, glm::mat4 P, GLuint shader);
+std::vector<GLuint> precomputePretabulatedMap(std::string sceneName, int SHOrder, int coefNum);
 
 void renderBallSet(int size, GLuint shader);
 
 const int cubeSize = 1024;
 glm::vec3 color(0);
 
-int realTimeRender(std::shared_ptr<Scene> worldScene) {
+int realTimeRender(const std::shared_ptr<Scene> &worldScene) {
 	glfwInit();
 
 	//开辟窗口
@@ -47,6 +48,9 @@ int realTimeRender(std::shared_ptr<Scene> worldScene) {
 	glDepthFunc(GL_LEQUAL);
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
+	glPolygonMode(GL_FRONT, GL_FILL);
+	glPolygonMode(GL_BACK, GL_FILL);
+
 	//预计算
 	std::cout << "LOAD HDR..."; GLuint envHDRHandle = loadHDR(worldScene->envMap); std::cout << "OK" << std::endl;
 	std::cout << "LOAD CUBE HDR..."; GLuint envHDRCubeHandle = cubeHDR(envHDRHandle, cubeSize, cubeSize); std::cout << "OK" << std::endl;
@@ -55,6 +59,9 @@ int realTimeRender(std::shared_ptr<Scene> worldScene) {
 	std::cout << "LOAD LIGHT ZHF..."; std::vector<glm::vec3> gEnvLightZHF = loadEnvLightZHFCoef(worldScene->sceneName, worldScene->getSHCoefNum()); std::cout << "OK" << std::endl;
 	std::cout << "LOAD PRT COEF..."; std::vector<std::vector<GLuint>> gPRTArrayHandle = loadPRTCoef(worldScene->sceneName, worldScene->world, worldScene->getSHCoefNum()); std::cout << "OK" << std::endl;
 	std::cout << "LOAD MESH VAO..."; std::vector<std::vector<GLuint>> meshesVAO = loadMesh(worldScene->world); std::cout << "OK" << std::endl;
+	if (worldScene->getSHType() == 2) {
+		std::cout << "PRECOMPUTE Pretabulated MAP..."; std::vector<GLuint> gEnvRecoverMapHandle = precomputePretabulatedMap(worldScene->sceneName, worldScene->getSHOrder(), worldScene->getSHCoefNum()); std::cout << "OK" << std::endl; //六个面
+	}
 	
 	if (DEBUG) { 
 		std::cout << "Rendering Load Finished!" << std::endl;
@@ -91,13 +98,14 @@ int realTimeRender(std::shared_ptr<Scene> worldScene) {
 
 				//std::cout << res.x << " " << res.y << " " << res.z << std::endl;
 			}
-
+			//color
 			float* ZHE = new float[3* (SHOrder + 1) * (SHOrder + 1)];
+			SHCoef temp(SHOrder);
 			for (int l = 0; l <= SHOrder; l++) {
 				int tempCoefNum = l * 2 + 1;
 				Eigen::MatrixXd tempMat(tempCoefNum, tempCoefNum);
 				for (int i = 0; i < tempCoefNum; i++) {
-					SHCoef temp = SHFSample(l, rotatedSampledOmega[i].x, rotatedSampledOmega[i].y, rotatedSampledOmega[i].z);
+					SHFSample(temp, l, rotatedSampledOmega[i].x, rotatedSampledOmega[i].y, rotatedSampledOmega[i].z);
 					for (int j = 0; j < tempCoefNum; j++)
 						tempMat(i, j) = temp[startIndex + j];
 				}
@@ -158,7 +166,25 @@ int realTimeRender(std::shared_ptr<Scene> worldScene) {
 
 		renderModel(worldScene->world, camera.GetViewMatrix(), projection, meshesVAO, gPRTArrayHandle);
 		//renderBallSet(0, meshProgram);
-		renderCubeHDREnv(envHDRCubeHandle, rotatedMatrix, camera.GetViewMatrix(), projection, shaderCubeProgram);
+		if (backGroundShading) renderCubeHDREnv(envHDRCubeHandle, rotatedMatrix, camera.GetViewMatrix(), projection, shaderCubeProgram);
+
+		glUseProgram(0);
+		glBindVertexArray(0);
+
+		for (int lightID = 0; lightID < worldScene->light.size(); lightID++) {
+			areaLight light = worldScene->light[lightID];
+
+			glColor3f(light.color.x, light.color.y, light.color.z);
+
+			glBegin(GL_POLYGON);
+			for (int pointID = 0; pointID < light.num; pointID++) {
+				//std::cout << pointID << " ---------------------------";
+				glm::vec4 p = glm::vec4(light.p[pointID].x, light.p[pointID].y, light.p[pointID].z, 1.0f);
+				p = projection * camera.GetViewMatrix() * p; p /= p.w;
+				glVertex3f(p.x, p.y, p.z);
+			}
+			glEnd();
+		}
 
 		if (DEBUG) {
 			glUseProgram(0);
@@ -560,6 +586,26 @@ GLuint loadEnvLightCoef(std::string sceneName, int coefNum) {
 			debugOutFile
 				<< coef[j * 3 + 0] << " " << coef[j * 3 + 1] << " " << coef[j * 3 + 2] << std::endl;
 		}
+		glm::vec3 TEST_SH(0);
+		std::cout << std::endl;
+		int coefNumbegin = 0;
+		int coefNumEnd = 9;
+		coefNum = 4;
+		//SHCoef shcoef = SHFSample(2, -1, 0, 0);
+		//for (int i = coefNumbegin; i < coefNumEnd; i++) std::cout << shcoef[i] << " "; std::cout << std::endl;
+		//for (int i = coefNumbegin; i < coefNumEnd; i++) TEST_SH += glm::vec3(coef[i * 3 + 0], coef[i * 3 + 1], coef[i * 3 + 2]) * shcoef[i];
+		//std::cout << "(-1,0,0):" << TEST_SH.x << " " << TEST_SH.y << " " << TEST_SH.z << " " << std::endl;
+		//std::cout << "(-1,0,0):" << std::endl;
+		//for (int i = coefNumbegin; i < coefNumEnd; i++) std::cout << "\t" << coef[i * 3 + 0] * shcoef[i] << " " << coef[i * 3 + 1] * shcoef[i] << " " << coef[i * 3 + 2] * shcoef[i] << std::endl;
+		//TEST_SH.x = TEST_SH.y = TEST_SH.z = 0;
+		//shcoef = SHFSample(2, 1, 0, 0);
+		//for (int i = coefNumbegin; i < coefNumEnd; i++) std::cout << shcoef[i] << " "; std::cout << std::endl;
+		//for (int i = coefNumbegin; i < coefNumEnd; i++) TEST_SH += glm::vec3(coef[i * 3 + 0], coef[i * 3 + 1], coef[i * 3 + 2]) * shcoef[i];
+		//std::cout << "(- 0.992278 0 0.124035):" << TEST_SH.x << " " << TEST_SH.y << " " << TEST_SH.z << " " << std::endl;
+		//std::cout << "( 1,0,0):" << std::endl;
+		//for (int i = coefNumbegin; i < coefNumEnd; i++) std::cout << "\t" << coef[i * 3 + 0] * shcoef[i] << " " << coef[i * 3 + 1] * shcoef[i] << " " << coef[i * 3 + 2] * shcoef[i] << std::endl;
+
+
 		debugOutFile.close();
 		//std::cout << " OK!" << std::endl;
 	}
@@ -598,26 +644,19 @@ std::vector<std::vector<GLuint>> loadPRTCoef(std::string sceneName, std::vector<
 				}
 				//std::cout << coef[ID * coefNum] << std::endl;
 			}
-			input.close();
+			input.close(); 
 
 			GLuint prtArray;
+			GLuint prtBuffer;
 			glGenTextures(1, &prtArray);
-			glBindTexture(GL_TEXTURE_2D, prtArray);
+			glGenBuffers(1, &prtBuffer);
 
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-			glTexImage2D(
-				GL_TEXTURE_2D,
-				0,
-				GL_R32F,
-				coefNum,
-				pNum,
-				0,
-				GL_RED,
-				GL_FLOAT,
-				coef
-			);
+			glBindBuffer(GL_TEXTURE_BUFFER, prtBuffer);
+			glBufferData(GL_TEXTURE_BUFFER, coefNum * pNum * sizeof(float), coef, GL_DYNAMIC_COPY);
+			glBindTexture(GL_TEXTURE_BUFFER, prtArray);
+			glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, prtBuffer);
+			glBindTexture(GL_TEXTURE_BUFFER, 0);
+			glBindBuffer(GL_TEXTURE_BUFFER, 0);
 
 			if (DEBUG) {
 				//std::cout << "PRT Data Output...";
@@ -648,11 +687,12 @@ void renderModel(std::vector<model> world, glm::mat4 V, glm::mat4 P, std::vector
 				glGetUniformLocation(meshProgram, "M"),
 				1, GL_FALSE,
 				glm::value_ptr(world[modelID].M));
-			glUniform1i(
-				glGetUniformLocation(meshProgram, "prtCoef"),
-				1);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, meshesPRTCoef[meshID]);
+			//glUniform1i(
+			//	glGetUniformLocation(meshProgram, "prtCoef"),
+			//	1);
+			//glActiveTexture(GL_TEXTURE1);
+			//glBindTexture(GL_TEXTURE_2D, meshesPRTCoef[meshID]);
+			glBindImageTexture(0, meshesPRTCoef[meshID], 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F);
 
 			int elementNum = tempMesh[meshID].p_indices.size() * 3;
 
@@ -661,6 +701,73 @@ void renderModel(std::vector<model> world, glm::mat4 V, glm::mat4 P, std::vector
 		}
 	}
 }
+const int PPTMSize = 1024;
+std::vector<GLuint> precomputePretabulatedMap(std::string sceneName, int SHOrder, int coefNum) {
+	std::vector<GLuint> res;
+	std::vector<glm::vec3> lightCoef;
+
+	std::ifstream input(sceneName + "/" + "ENV_coef.txt");
+	for (int i = 0; i < coefNum; i++) {
+		glm::vec3 color;
+		input >> color.x >> color.y >> color.z;
+		lightCoef.push_back(color);
+	}
+	input.close();
+
+	glm::vec3 faceOrigin[] = {
+		glm::vec3( 1.0, 1.0, 1.0),//posx
+		glm::vec3(-1.0, 1.0,-1.0),//negx
+		glm::vec3(-1.0, 1.0,-1.0),//posy
+		glm::vec3(-1.0,-1.0, 1.0),//negy
+		glm::vec3(-1.0, 1.0, 1.0),//posz
+		glm::vec3( 1.0, 1.0,-1.0),//negz
+	};
+	glm::vec3 faceDir[] = {
+		glm::vec3( 0.0, 0.0,-2.0 / PPTMSize),glm::vec3( 0.0,-2.0 / PPTMSize, 0.0),//posx
+		glm::vec3( 0.0, 0.0, 2.0 / PPTMSize),glm::vec3( 0.0,-2.0 / PPTMSize, 0.0),//negx
+		glm::vec3( 2.0 / PPTMSize, 0.0, 0.0),glm::vec3( 0.0, 0.0, 2.0 / PPTMSize),//posy
+		glm::vec3( 2.0 / PPTMSize, 0.0, 0.0),glm::vec3( 0.0, 0.0,-2.0 / PPTMSize),//negy
+		glm::vec3( 2.0 / PPTMSize, 0.0, 0.0),glm::vec3( 0.0,-2.0 / PPTMSize, 0.0),//posz
+		glm::vec3(-2.0 / PPTMSize, 0.0, 0.0),glm::vec3( 0.0,-2.0 / PPTMSize, 0.0),//negz
+	};
+	std::string faceName[] = { "posx" , "negx" , "posy" , "negy" , "posz" , "negz" };
+	SHCoef SHC((SHOrder + 1) * (SHOrder + 1));
+	for (int face = 0; face < 6; face++) {
+		GLuint resHandle; 
+		glGenTextures(1, &resHandle);
+
+		GLfloat* map = new GLfloat[PPTMSize * PPTMSize * 3 * (SHOrder + 1)];
+		for (int l = 0; l <= SHOrder; l++) {
+			for (int v = 0; v < PPTMSize; v++)
+				for (int u = 0; u < PPTMSize; u++) {
+					glm::vec3 color(0);
+					glm::vec3 omega = faceOrigin[face] + faceDir[face * 2 + 0] * (float)u + faceDir[face * 2 + 1] * (float)v;
+					SHFSample(SHC, l, omega.x, omega.y, omega.z);
+					for (int m = 0; m <= l * 2 + 1; m++) color += SHC[m] * lightCoef[m];
+					map[(l * PPTMSize * PPTMSize + v * PPTMSize + u) * 3 + 0] = color[0];
+					map[(l * PPTMSize * PPTMSize + v * PPTMSize + u) * 3 + 1] = color[1];
+					map[(l * PPTMSize * PPTMSize + v * PPTMSize + u) * 3 + 2] = color[2];
+				}
+			stbi_write_hdr(("pretabulated/" + faceName[face] + "_SHORDER-" + std::to_string(l) + ".hdr").c_str(), PPTMSize, PPTMSize, 3, map + l * PPTMSize * PPTMSize * 3);
+		}
+		glBindTexture(GL_TEXTURE_3D, resHandle);
+		glTexImage3D(
+			GL_TEXTURE_3D,
+			0,
+			GL_RGB32F,
+			PPTMSize,
+			PPTMSize,
+			SHOrder + 1,
+			0,
+			GL_RGB,
+			GL_FLOAT,
+			map);
+		res.push_back(resHandle);
+		delete[] map;
+	}
+	return res;
+}
+
 unsigned int sphereVAO = 0;
 unsigned int indexCount;
 void renderSphere()

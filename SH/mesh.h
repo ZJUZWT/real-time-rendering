@@ -97,13 +97,16 @@ public :
 			glm::vec3 normal = glm::normalize(glm::vec3(aimesh->mNormals[i].x, aimesh->mNormals[i].y, aimesh->mNormals[i].z));
 			res.n.push_back(normal);
 			if (DEBUG) {
-				outputFile << "v" << " " << aimesh->mVertices[i].x << " " << aimesh->mVertices[i].y << " " << aimesh->mVertices[i].z << std::endl;
+				outputFile << "v" << " " << aimesh->mVertices[i].x / 100 << " " << aimesh->mVertices[i].y / 100 << " " << aimesh->mVertices[i].z / 100 << std::endl;
 				outputFile << "vn" << " " << normal.x << " " << normal.y << " " << normal.z << std::endl;
 			}
 		}
 		for (int i = 0; i < aimesh->mNumFaces; i++) {
 			res.p_indices.push_back(glm::vec3(aimesh->mFaces[i].mIndices[0], aimesh->mFaces[i].mIndices[1], aimesh->mFaces[i].mIndices[2]));
-			outputFile << "f" << " " << aimesh->mFaces[i].mIndices[0] << " " << aimesh->mFaces[i].mIndices[1] << " " << aimesh->mFaces[i].mIndices[2] << std::endl;
+			outputFile << "f" << 
+				" " << aimesh->mFaces[i].mIndices[0] + 1 << "//" << aimesh->mFaces[i].mIndices[0] + 1 <<
+				" " << aimesh->mFaces[i].mIndices[1] + 1 << "//" << aimesh->mFaces[i].mIndices[1] + 1 <<
+				" " << aimesh->mFaces[i].mIndices[2] + 1 << "//" << aimesh->mFaces[i].mIndices[2] + 1 << std::endl;
 		}
 
 		if (DEBUG) {
@@ -132,7 +135,8 @@ public :
 		model res;
 		//Load mesh data
 		Assimp::Importer importer;
-		const aiScene* scene = importer.ReadFile(fileName, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenNormals);
+		const aiScene* scene = importer.ReadFile(fileName, aiProcess_JoinIdenticalVertices);
+		//const aiScene* scene = importer.ReadFile(fileName, aiProcess_FlipUVs);
 		if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
 			std::cout << "ERROR : ASSIMP::No File " << fileName << std::endl;
 			return res;

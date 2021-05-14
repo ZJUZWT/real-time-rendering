@@ -9,6 +9,5 @@ vec3 gamma(vec3 color) {
 }
 
 void main() {
-	//fragColor = vec4(gamma(color) * 100, 1.0);
 	fragColor = vec4(gamma(color), 1.0);
 }
